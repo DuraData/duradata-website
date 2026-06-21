@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, ArrowUpRight } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock3, ArrowUpRight } from 'lucide-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -148,22 +148,41 @@ export default function Footer() {
           <h4 className="text-base font-bold text-white tracking-wider uppercase mb-6">Contact Us</h4>
           <ul className="flex flex-col gap-4 text-sm text-slate-400">
             <li className="flex items-start gap-3">
-              <Mail className="w-5 h-5 text-brand-teal shrink-0 mt-0.5" />
-              <a href="mailto:info@duradata.co.za" className="hover:text-brand-teal transition-colors">
-                info@duradata.co.za
-              </a>
+              <MapPin className="w-5 h-5 text-brand-teal shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-slate-500 font-mono">OFFICE</span>
+                <span>512 The Himalaya</span>
+                <span>Durban 4001</span>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <Clock3 className="w-5 h-5 text-brand-teal shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-slate-500 font-mono">HOURS</span>
+                <span>Mon - Fri : 08am - 16:00pm</span>
+                <span>S-S: Closed</span>
+              </div>
             </li>
             <li className="flex items-start gap-3">
               <Phone className="w-5 h-5 text-brand-teal shrink-0 mt-0.5" />
-              <a href="tel:+27110000000" className="hover:text-brand-teal transition-colors">
-                +27 (11) 123-4567
-              </a>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-slate-500 font-mono">CALL US</span>
+                <a href="tel:+27638610733" className="hover:text-brand-teal transition-colors">
+                  +27 63 861 0733
+                </a>
+                <a href="tel:+27631692324" className="hover:text-brand-teal transition-colors">
+                  +27 63 169 2324
+                </a>
+              </div>
             </li>
             <li className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-brand-teal shrink-0 mt-0.5" />
-              <span>
-                100 Melrose Boulevard, Melrose Arch, Johannesburg, 2076, South Africa
-              </span>
+              <Mail className="w-5 h-5 text-brand-teal shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-slate-500 font-mono">EMAIL</span>
+                <a href="mailto:sales@duradata.co.za" className="hover:text-brand-teal transition-colors">
+                  info@duradata.co.za
+                </a>
+              </div>
             </li>
           </ul>
         </div>
