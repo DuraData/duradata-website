@@ -13,6 +13,15 @@ function run(command, env = process.env) {
   }).trim();
 }
 
+function writeBlob(content, env = process.env) {
+  return execSync('git hash-object -w --stdin', {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    encoding: 'utf8',
+    env,
+    input: content,
+  }).trim();
+}
+
 try {
   run('git rev-parse --is-inside-work-tree');
 } catch {
@@ -49,6 +58,17 @@ try {
 
   run('git read-tree --empty', env);
   run('git --work-tree=dist add -A --force .', env);
+
+  const distBranchGitignore = [
+    'node_modules/',
+    '.vite/',
+    'npm-debug.log*',
+    'yarn-debug.log*',
+    'yarn-error.log*',
+  ].join('\n');
+  const gitignoreBlob = writeBlob(`${distBranchGitignore}\n`, env);
+  run(`git update-index --add --cacheinfo 100644 ${gitignoreBlob} .gitignore`, env);
+
   const tree = run('git write-tree', env);
 
   let parentArg = '';
