@@ -1,46 +1,47 @@
 import { motion } from 'framer-motion';
-import { Target, Eye, Shield, Award, Users, Star, BookOpen, CheckCircle2 } from 'lucide-react';
+import { Users, BriefcaseBusiness, Smile, CheckCircle2 } from 'lucide-react';
 import AnimatedSection from '../components/AnimatedSection';
 
 export default function About() {
-  const coreValues = [
-    {
-      icon: <Star className="w-6 h-6 text-brand-teal" />,
-      title: 'Innovation',
-      desc: 'We continuously push the boundaries of what is possible, staying ahead of technology curves to offer cutting-edge solutions.'
-    },
-    {
-      icon: <Award className="w-6 h-6 text-brand-azure" />,
-      title: 'Excellence',
-      desc: 'We are committed to delivering the highest quality of work, ensuring our projects yield maximum business value.'
-    },
-    {
-      icon: <Shield className="w-6 h-6 text-brand-blue" />,
-      title: 'Integrity',
-      desc: 'We build relationships based on trust, absolute transparency, data security, and ethical consulting practices.'
-    },
+  const stats = [
     {
       icon: <Users className="w-6 h-6 text-brand-teal" />,
-      title: 'Collaboration',
-      desc: 'We work as an extension of our clients\' teams, co-creating solutions designed around their specific processes.'
+      value: '8',
+      label: 'IT Experts'
     },
     {
-      icon: <BookOpen className="w-6 h-6 text-brand-azure" />,
-      title: 'Continuous Learning',
-      desc: 'Technology changes rapidly; we invest heavily in certification, academic training, and research to keep our skills premium.'
+      icon: <BriefcaseBusiness className="w-6 h-6 text-brand-azure" />,
+      value: '15',
+      label: 'Years Of Combined Experience'
+    },
+    {
+      icon: <Smile className="w-6 h-6 text-brand-blue" />,
+      value: '11',
+      label: 'Satisfied Clients'
     }
   ];
 
-  const specializations = [
-    'Data Analytics & KPI Design',
-    'Artificial Intelligence & Predictive Analytics',
-    'Microsoft Power Platform (Apps, Automate, Dataverse)',
-    'Microsoft Azure Enterprise Cloud Architectures',
-    'AWS Cloud Infrastructure & Serverless Pipelines',
-    'Executive Business Intelligence & Dashboards',
-    'Corporate Web Portals & CMS Development',
-    'Custom Business Systems, CRMs & ERP Solutions',
-    'Professional Training Academy (Excel, SQL, Python, Power BI)'
+  const whyChooseUs = [
+    {
+      title: 'Expertise and Experience',
+      desc: 'Our consultants bring deep technical knowledge and practical industry insight to each engagement.'
+    },
+    {
+      title: 'Customized Solutions',
+      desc: 'We tailor every strategy and implementation plan to your business goals, data maturity, and environment.'
+    },
+    {
+      title: 'Cutting-Edge Technology',
+      desc: 'We apply modern analytics platforms and AI capabilities to help you move faster with confidence.'
+    },
+    {
+      title: 'Proven Track Record',
+      desc: 'Our delivery history reflects measurable outcomes, long-term partnerships, and dependable execution.'
+    },
+    {
+      title: 'Commitment to Excellence',
+      desc: 'We maintain high standards in quality, service, and continuous improvement across all client work.'
+    }
   ];
 
   return (
@@ -57,7 +58,7 @@ export default function About() {
             animate={{ opacity: 1, y: 0 }}
             className="text-sm font-bold text-brand-teal uppercase tracking-widest"
           >
-            Who We Are
+            Data Analytics Consulting Since 2023
           </motion.span>
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
@@ -73,93 +74,67 @@ export default function About() {
             transition={{ delay: 0.2 }}
             className="text-base text-slate-300 max-w-2xl mx-auto leading-relaxed"
           >
-            A premier technology consulting partner helping organizations transform their operational intelligence and capabilities through modern data platforms and software solutions.
+            At Duradata, we specialize in delivering cutting-edge data analytics and artificial intelligence solutions tailored to meet the unique needs of our clients.
           </motion.p>
         </div>
       </section>
 
-      {/* Overview & Specializations */}
+      {/* Overview */}
       <section className="py-12 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <AnimatedSection className="lg:col-span-6 flex flex-col gap-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <AnimatedSection className="flex flex-col gap-6">
             <h2 className="text-2xl sm:text-3xl font-bold text-white">Company Overview</h2>
             <p className="text-sm text-slate-300 leading-relaxed">
-              DuraData is an enterprise-grade technology consulting and professional training firm. We assist mid-market and large enterprises in replacing outdated spreadsheets and siloed systems with centralized, automated, and secure cloud platforms.
+              As a trusted consulting firm, we empower businesses to make data-driven decisions, unlock insights, and enhance operational efficiency. Our expert team combines deep industry knowledge with advanced technologies to provide innovative strategies that drive growth and transformation.
             </p>
             <p className="text-sm text-slate-300 leading-relaxed">
-              Whether you need to architect a robust data warehouse in Azure, develop a custom application using Microsoft Power Apps, write a machine learning model for predictive forecasting, or skill up your staff in modern analytics languages, DuraData supplies the technical execution and strategic vision.
+              Partner with us to harness the power of your data and elevate your organization's potential.
             </p>
           </AnimatedSection>
-          
-          <AnimatedSection className="lg:col-span-6 glass-panel p-8 rounded-2xl border border-white/5 relative">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/10 blur-[40px] rounded-full" />
-            <h3 className="text-lg font-bold text-brand-teal mb-6">Our Areas of Expertise</h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-1 gap-4">
-              {specializations.map((spec, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-brand-teal shrink-0 mt-0.5" />
-                  <span className="text-sm text-slate-200 leading-relaxed">{spec}</span>
-                </li>
-              ))}
-            </ul>
+
+          <AnimatedSection className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {stats.map((item) => (
+              <div key={item.label} className="glass-panel p-6 rounded-2xl border border-white/5 flex flex-col gap-3 items-center text-center">
+                <div className="w-12 h-12 rounded-xl bg-brand-deep border border-white/10 flex items-center justify-center">
+                  {item.icon}
+                </div>
+                <span className="text-3xl font-extrabold text-brand-teal font-mono">{item.value}</span>
+                <span className="text-xs uppercase tracking-wider text-slate-300">{item.label}</span>
+              </div>
+            ))}
           </AnimatedSection>
         </div>
       </section>
 
-      {/* Mission & Vision */}
+      {/* Why Choose Us */}
       <section className="py-20 px-6 bg-slate-900/30 border-y border-white/5 my-12">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
-          {/* Mission */}
-          <AnimatedSection className="glass-panel p-8 sm:p-10 rounded-2xl flex flex-col gap-6 relative group border border-white/5 hover:border-brand-teal/20 transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-brand-teal/10 border border-brand-teal/20 flex items-center justify-center text-brand-teal">
-              <Target className="w-6 h-6" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-2xl font-bold text-white">Our Mission</h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                To empower organizations with high-performing technology, advanced data analytics, and intelligent software systems that drive continuous innovation, optimize operations, and unlock true growth potential.
-              </p>
-            </div>
-          </AnimatedSection>
-
-          {/* Vision */}
-          <AnimatedSection className="glass-panel p-8 sm:p-10 rounded-2xl flex flex-col gap-6 relative group border border-white/5 hover:border-brand-blue/20 transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center text-brand-blue">
-              <Eye className="w-6 h-6" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-2xl font-bold text-white">Our Vision</h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                To become Africa's leading data, cloud, and technology consulting partner, recognized for client excellence, innovative system architecture, and impactful technical capacity-building.
-              </p>
-            </div>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* Core Values */}
-      <section className="py-12 px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <AnimatedSection className="flex flex-col items-center gap-4 mb-16">
-            <span className="text-sm font-bold text-brand-azure uppercase tracking-widest">Guiding Principles</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Our Core Values</h2>
-            <p className="text-slate-400 max-w-2xl text-sm leading-relaxed">
-              These principles guide our developer and consultant teams in every script written, every architecture deployed, and every client interaction.
+        <div className="max-w-7xl mx-auto">
+          <AnimatedSection className="text-center flex flex-col items-center gap-4 mb-12">
+            <span className="text-sm font-bold text-brand-azure uppercase tracking-widest">Trust</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Why choose us</h2>
+            <p className="text-slate-300 max-w-3xl text-sm leading-relaxed">
+              Duradata is a premier consulting firm specializing in data analytics and artificial intelligence solutions. We empower businesses to unlock the full potential of their data through customized strategies that drive informed decision-making and operational efficiency.
+            </p>
+            <p className="text-slate-300 max-w-3xl text-sm leading-relaxed">
+              With a team of experienced professionals and a commitment to leveraging cutting-edge technology, we deliver innovative solutions tailored to the unique needs of each client.
+            </p>
+            <p className="text-slate-300 max-w-3xl text-sm leading-relaxed">
+              Our proven track record of success and dedication to excellence make us the ideal partner for organizations looking to enhance their competitive edge and achieve sustainable growth.
             </p>
           </AnimatedSection>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
-            {coreValues.map((value, idx) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {whyChooseUs.map((item, idx) => (
               <AnimatedSection
-                key={value.title}
+                key={item.title}
                 delay={idx * 0.05}
                 className="glass-panel p-8 rounded-2xl border border-white/5 text-left flex flex-col gap-4 hover:bg-slate-800/20 hover:scale-[1.01] transition-all duration-300"
               >
-                <div className="w-12 h-12 rounded-xl bg-brand-deep border border-white/10 flex items-center justify-center">
-                  {value.icon}
+                <div className="w-10 h-10 rounded-full bg-brand-teal/10 border border-brand-teal/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-brand-teal" />
                 </div>
-                <h3 className="text-lg font-bold text-white">{value.title}</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">{value.desc}</p>
+                <h3 className="text-lg font-bold text-white">{item.title}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">{item.desc}</p>
               </AnimatedSection>
             ))}
           </div>

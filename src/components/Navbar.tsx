@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Logo from './Logo';
+
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,30 +48,8 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="relative w-10 h-10 flex items-center justify-center">
-            {/* Abstract open square logo representing DuraData logo */}
-            <svg 
-              viewBox="0 0 100 100" 
-              className="w-8 h-8 text-brand-teal transition-transform duration-500 group-hover:rotate-90"
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="10"
-            >
-              {/* Draw an open square: Left, top, bottom border. Right is open */}
-              <path d="M 85 15 L 15 15 L 15 85 L 85 85" strokeLinecap="square" />
-              {/* Inner blue accent dot/cube */}
-              <rect x="45" y="45" width="20" height="20" className="fill-brand-blue stroke-none" />
-            </svg>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-2xl font-bold tracking-tight text-white font-sans">
-              Dura<span className="text-brand-teal">Data</span>
-            </span>
-            <span className="text-[9px] tracking-[0.12em] text-slate-400 uppercase -mt-1 font-semibold">
-              Transforming Data
-            </span>
-          </div>
+        <Link to="/" className="flex items-center group">
+          <Logo />
         </Link>
 
         {/* Desktop Navigation */}

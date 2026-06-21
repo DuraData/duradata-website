@@ -1,67 +1,80 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Phone, MapPin, CheckCircle, AlertTriangle, Send, Calendar } from 'lucide-react';
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Clock3,
+  CheckCircle,
+  AlertTriangle,
+  Send,
+  Target,
+  LifeBuoy,
+  Lightbulb,
+} from 'lucide-react';
 import AnimatedSection from '../components/AnimatedSection';
 
 interface FormData {
   name: string;
   email: string;
-  phone: string;
-  company: string;
-  interest: string;
+  address: string;
+  residentialBusiness: string;
   message: string;
 }
 
 interface FormErrors {
   name?: string;
   email?: string;
-  phone?: string;
-  interest?: string;
+  address?: string;
+  residentialBusiness?: string;
   message?: string;
 }
 
-export default function Contact() {
-  const [searchParams] = useSearchParams();
-  const interestParam = searchParams.get('interest') || '';
-  const messageParam = searchParams.get('message') || '';
+const faqItems = [
+  {
+    question: 'What types of data analytics training do you offer?',
+    answer:
+      'We offer beginner to advanced training in data analytics, covering tools like Excel, Power BI, Tableau, SQL, Python, and R, as well as topics like data visualization, data cleaning, and machine learning fundamentals.',
+  },
+  {
+    question: 'Do I need prior experience in data analytics to enroll?',
+    answer:
+      'Not at all! We offer beginner-friendly courses that start with the basics. No prior experience is needed unless you are enrolling in an advanced-level program.',
+  },
+  {
+    question: 'Do you offer corporate or group training programs?',
+    answer:
+      'Absolutely. We specialize in custom corporate training tailored to your team\'s skill level, tools, and business goals. Reach out to our sales team to learn more.',
+  },
+  {
+    question: 'Who are the courses designed for?',
+    answer:
+      'Our courses are designed for individuals at all levels - students, professionals looking to upskill, and organizations seeking custom training for their teams.',
+  },
+  {
+    question: 'Are the courses instructor-led or self-paced?',
+    answer:
+      'We provide both options. You can join live, instructor-led sessions or choose self-paced modules, depending on your schedule and learning preference.',
+  },
+  {
+    question: 'How do I access the training materials?',
+    answer:
+      'Once enrolled, you will receive access to our learning portal, where you can download resources, watch recordings, and track your progress.',
+  },
+];
 
+export default function Contact() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
-    phone: '',
-    company: '',
-    interest: interestParam,
-    message: messageParam,
+    address: '',
+    residentialBusiness: '',
+    message: '',
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-
-  // Sync search parameters if they change
-  useEffect(() => {
-    if (interestParam) {
-      setFormData(prev => ({ ...prev, interest: interestParam }));
-    }
-    if (messageParam) {
-      setFormData(prev => ({ ...prev, message: messageParam }));
-    }
-  }, [interestParam, messageParam]);
-
-  const interestOptions = [
-    'Data Analytics',
-    'Artificial Intelligence',
-    'Power BI',
-    'Tableau',
-    'Power Platform',
-    'Azure',
-    'AWS',
-    'Website Development',
-    'Application Development',
-    'Training',
-    'Other'
-  ];
 
   const validate = (): boolean => {
     const tempErrors: FormErrors = {};
@@ -80,23 +93,20 @@ export default function Contact() {
       isValid = false;
     }
 
-    if (!formData.phone.trim()) {
-      tempErrors.phone = 'Phone number is required.';
-      isValid = false;
-    } else if (!/^\+?[0-9\s-]{9,15}$/.test(formData.phone)) {
-      tempErrors.phone = 'Please enter a valid phone number.';
+    if (!formData.address.trim()) {
+      tempErrors.address = 'Address is required.';
       isValid = false;
     }
 
-    if (!formData.interest) {
-      tempErrors.interest = 'Please select a service interest.';
+    if (!formData.residentialBusiness) {
+      tempErrors.residentialBusiness = 'Please select Residential or Business.';
       isValid = false;
     }
 
     if (!formData.message.trim()) {
       tempErrors.message = 'Message is required.';
       isValid = false;
-    } else if (formData.message.length < 10) {
+    } else if (formData.message.trim().length < 10) {
       tempErrors.message = 'Message must be at least 10 characters long.';
       isValid = false;
     }
@@ -107,27 +117,27 @@ export default function Contact() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error dynamically
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name as keyof FormErrors]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (validate()) {
       setIsSubmitting(true);
-      // Simulate API submit
+
       setTimeout(() => {
         setIsSubmitting(false);
         setSubmitSuccess(true);
         setFormData({
           name: '',
           email: '',
-          phone: '',
-          company: '',
-          interest: '',
+          address: '',
+          residentialBusiness: '',
           message: '',
         });
       }, 1500);
@@ -136,11 +146,9 @@ export default function Contact() {
 
   return (
     <div className="pt-24 pb-20 relative">
-      {/* Decorative Glow */}
       <div className="absolute top-20 left-1/4 w-[400px] h-[400px] bg-brand-blue/5 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-brand-teal/5 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Header */}
       <section className="py-16 px-6 text-center">
         <div className="max-w-4xl mx-auto flex flex-col gap-4">
           <motion.span
@@ -148,7 +156,7 @@ export default function Contact() {
             animate={{ opacity: 1, y: 0 }}
             className="text-sm font-bold text-brand-teal uppercase tracking-widest"
           >
-            Connect With Us
+            Contact info
           </motion.span>
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
@@ -156,100 +164,110 @@ export default function Contact() {
             transition={{ delay: 0.1 }}
             className="text-4xl sm:text-5xl font-extrabold text-white"
           >
-            Let's Discuss Your <span className="text-gradient-primary">Next Project</span>
+            Contact <span className="text-gradient-primary">Us</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-base text-slate-300 max-w-2xl mx-auto leading-relaxed"
+            className="text-base text-slate-300 max-w-3xl mx-auto leading-relaxed"
           >
-            Have a question about data integration, custom apps, or training packages? Send us a message and a consultant will follow up with you.
+            Whether you have a question, need a custom solution, or just want to learn more about our services, our team is ready to assist you. Reach out to us anytime - we are committed to providing prompt and helpful responses to support your goals.
           </motion.p>
         </div>
       </section>
 
-      {/* Content Form and details */}
       <section className="py-8 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          
-          {/* Contact Details Column */}
-          <div className="lg:col-span-5 flex flex-col gap-8">
-            <AnimatedSection className="glass-panel p-8 rounded-3xl border border-white/5 flex flex-col gap-6">
-              <h3 className="text-xl font-bold text-white">Office Contact Info</h3>
-              
+          <div className="lg:col-span-5 flex flex-col gap-6">
+            <AnimatedSection className="glass-panel p-6 rounded-2xl border border-white/5 flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-brand-teal/10 border border-brand-teal/20 flex items-center justify-center text-brand-teal shrink-0">
+                <Target className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h3 className="text-base font-bold text-white">Contact Sales</h3>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  Looking for the right solution? Our sales team is here to help with quotes, product info, and tailored options to fit your needs.
+                </p>
+              </div>
+            </AnimatedSection>
+
+            <AnimatedSection className="glass-panel p-6 rounded-2xl border border-white/5 flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-brand-azure/10 border border-brand-azure/20 flex items-center justify-center text-brand-azure shrink-0">
+                <LifeBuoy className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h3 className="text-base font-bold text-white">Contact Support</h3>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  Our support team is here to assist you with any questions, issues, or technical concerns. We are just a message away.
+                </p>
+              </div>
+            </AnimatedSection>
+
+            <AnimatedSection className="glass-panel p-6 rounded-2xl border border-white/5 flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center text-brand-blue shrink-0">
+                <Lightbulb className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h3 className="text-base font-bold text-white">Request a Feature</h3>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  Have an Idea? We would love to hear it! Share your feature request and help us improve your experience.
+                </p>
+              </div>
+            </AnimatedSection>
+
+            <AnimatedSection className="glass-panel p-8 rounded-2xl border border-white/5">
+              <h3 className="text-lg font-bold text-white mb-6">Office Contact Details</h3>
               <ul className="flex flex-col gap-6 text-sm text-slate-300">
+                <li className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center text-brand-blue shrink-0">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs text-slate-500 font-mono">OFFICE</span>
+                    <span>512 The Himalaya</span>
+                    <span>Durban 4001</span>
+                  </div>
+                </li>
+                <li className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-brand-teal/10 border border-brand-teal/20 flex items-center justify-center text-brand-teal shrink-0">
+                    <Clock3 className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs text-slate-500 font-mono">HOURS</span>
+                    <span>Mon - Fri : 08am - 16:00pm</span>
+                    <span>S-S: Closed</span>
+                  </div>
+                </li>
+                <li className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-brand-azure/10 border border-brand-azure/20 flex items-center justify-center text-brand-azure shrink-0">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs text-slate-500 font-mono">CALL US</span>
+                    <a href="tel:+27638610733" className="hover:text-brand-teal transition-colors">
+                      +27 63 861 0733
+                    </a>
+                    <a href="tel:+27631692324" className="hover:text-brand-teal transition-colors">
+                      +27 63 169 2324
+                    </a>
+                  </div>
+                </li>
                 <li className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-xl bg-brand-teal/10 border border-brand-teal/20 flex items-center justify-center text-brand-teal shrink-0">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs text-slate-500 font-mono">EMAIL</span>
-                    <a href="mailto:info@duradata.co.za" className="hover:text-brand-teal transition-colors font-bold">
+                    <a href="mailto:info@duradata.co.za" className="hover:text-brand-teal transition-colors">
                       info@duradata.co.za
                     </a>
                   </div>
                 </li>
-
-                <li className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-brand-azure/10 border border-brand-azure/20 flex items-center justify-center text-brand-azure shrink-0">
-                    <Phone className="w-5 h-5" />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs text-slate-500 font-mono">PHONE</span>
-                    <a href="tel:+27110000000" className="hover:text-brand-teal transition-colors font-bold">
-                      +27 (11) 123-4567
-                    </a>
-                  </div>
-                </li>
-
-                <li className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center text-brand-blue shrink-0">
-                    <MapPin className="w-5 h-5" />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs text-slate-500 font-mono">HEADQUARTERS</span>
-                    <span className="leading-relaxed">
-                      100 Melrose Boulevard, Melrose Arch, Johannesburg, 2076, South Africa
-                    </span>
-                  </div>
-                </li>
               </ul>
-            </AnimatedSection>
-
-            {/* Quick Consultation block */}
-            <AnimatedSection className="glass-panel p-8 rounded-3xl border border-white/5 bg-gradient-to-r from-brand-blue/20 to-brand-azure/10 flex items-start gap-4">
-              <Calendar className="w-8 h-8 text-brand-teal shrink-0" />
-              <div className="flex flex-col gap-2">
-                <h4 className="text-base font-bold text-white">Virtual Audits Available</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  We schedule 30-minute MS Teams or Zoom calls to analyze your current spreadsheet architectures and SQL structures.
-                </p>
-              </div>
-            </AnimatedSection>
-
-            {/* Google Map Mockup */}
-            <AnimatedSection className="glass-panel h-[200px] rounded-3xl border border-white/5 relative overflow-hidden flex items-center justify-center group">
-              <div className="absolute inset-0 bg-slate-950 opacity-40 mix-blend-overlay group-hover:scale-105 transition-transform duration-700" />
-              {/* Abstract SVG grid representation of a map */}
-              <svg viewBox="0 0 400 200" className="w-full h-full text-brand-blue/20" stroke="currentColor" strokeWidth="1">
-                <line x1="0" y1="50" x2="400" y2="50" />
-                <line x1="0" y1="120" x2="400" y2="120" />
-                <line x1="100" y1="0" x2="100" y2="200" />
-                <line x1="280" y1="0" x2="280" y2="200" />
-                {/* Diagonal highway */}
-                <line x1="0" y1="180" x2="400" y2="20" strokeWidth="3" className="text-brand-teal/10" />
-                {/* Melrose Arch Pin */}
-                <circle cx="280" cy="120" r="8" className="fill-brand-teal text-none animate-ping" />
-                <circle cx="280" cy="120" r="5" className="fill-brand-teal text-none" />
-              </svg>
-              <div className="absolute px-4 py-2 bg-brand-deep/80 backdrop-blur rounded-lg border border-white/10 text-xs font-mono text-slate-300">
-                Johannesburg, South Africa
-              </div>
             </AnimatedSection>
           </div>
 
-          {/* Form Column */}
           <div className="lg:col-span-7">
             <AnimatedSection className="glass-panel p-8 sm:p-10 rounded-3xl border border-white/5">
               <AnimatePresence mode="wait">
@@ -264,9 +282,9 @@ export default function Contact() {
                       <CheckCircle className="w-8 h-8" />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <h3 className="text-2xl font-bold text-white">Consultation Requested!</h3>
+                      <h3 className="text-2xl font-bold text-white">Message Sent!</h3>
                       <p className="text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
-                        Thank you for reaching out. A DuraData consulting manager will review your submission and email you back within 24 hours.
+                        Thank you for contacting us. Our team will get back to you shortly.
                       </p>
                     </div>
                     <button
@@ -278,11 +296,12 @@ export default function Contact() {
                   </motion.div>
                 ) : (
                   <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                    <h3 className="text-2xl font-bold text-white">We are Here To Help!</h3>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {/* Name */}
                       <div className="flex flex-col gap-2">
                         <label htmlFor="name" className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                          Full Name *
+                          Name
                         </label>
                         <input
                           type="text"
@@ -290,7 +309,7 @@ export default function Contact() {
                           name="name"
                           value={formData.name}
                           onChange={handleChange}
-                          placeholder="John Doe"
+                          placeholder="Name"
                           className={`w-full px-4 py-3 rounded-xl bg-brand-deep/80 border text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-teal transition-colors ${
                             errors.name ? 'border-red-500/50' : 'border-white/5'
                           }`}
@@ -303,10 +322,9 @@ export default function Contact() {
                         )}
                       </div>
 
-                      {/* Email */}
                       <div className="flex flex-col gap-2">
                         <label htmlFor="email" className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                          Business Email *
+                          Email Address
                         </label>
                         <input
                           type="email"
@@ -314,7 +332,7 @@ export default function Contact() {
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          placeholder="john@company.com"
+                          placeholder="Email Address"
                           className={`w-full px-4 py-3 rounded-xl bg-brand-deep/80 border text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-teal transition-colors ${
                             errors.email ? 'border-red-500/50' : 'border-white/5'
                           }`}
@@ -328,81 +346,63 @@ export default function Contact() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {/* Phone */}
-                      <div className="flex flex-col gap-2">
-                        <label htmlFor="phone" className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                          Phone Number *
-                        </label>
-                        <input
-                          type="tel"
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          placeholder="+27 11 123 4567"
-                          className={`w-full px-4 py-3 rounded-xl bg-brand-deep/80 border text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-teal transition-colors ${
-                            errors.phone ? 'border-red-500/50' : 'border-white/5'
-                          }`}
-                        />
-                        {errors.phone && (
-                          <span className="text-[10px] text-red-400 flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" />
-                            {errors.phone}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Company */}
-                      <div className="flex flex-col gap-2">
-                        <label htmlFor="company" className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                          Company Name
-                        </label>
-                        <input
-                          type="text"
-                          id="company"
-                          name="company"
-                          value={formData.company}
-                          onChange={handleChange}
-                          placeholder="Acme Holdings"
-                          className="w-full px-4 py-3 rounded-xl bg-brand-deep/80 border border-white/5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-teal transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Interest Dropdown */}
                     <div className="flex flex-col gap-2">
-                      <label htmlFor="interest" className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                        Service Interest *
+                      <label htmlFor="address" className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                        Address
                       </label>
-                      <select
-                        id="interest"
-                        name="interest"
-                        value={formData.interest}
+                      <input
+                        type="text"
+                        id="address"
+                        name="address"
+                        value={formData.address}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 rounded-xl bg-brand-deep/80 border text-sm text-white focus:outline-none focus:border-brand-teal transition-colors appearance-none ${
-                          errors.interest ? 'border-red-500/50' : 'border-white/5'
+                        placeholder="Address"
+                        className={`w-full px-4 py-3 rounded-xl bg-brand-deep/80 border text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-teal transition-colors ${
+                          errors.address ? 'border-red-500/50' : 'border-white/5'
                         }`}
-                      >
-                        <option value="" disabled className="bg-brand-deep">Select an option...</option>
-                        {interestOptions.map(opt => (
-                          <option key={opt} value={opt} className="bg-slate-900 text-white">
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.interest && (
+                      />
+                      {errors.address && (
                         <span className="text-[10px] text-red-400 flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" />
-                          {errors.interest}
+                          {errors.address}
                         </span>
                       )}
                     </div>
 
-                    {/* Message */}
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="residentialBusiness" className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                        Residential/Business
+                      </label>
+                      <select
+                        id="residentialBusiness"
+                        name="residentialBusiness"
+                        value={formData.residentialBusiness}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 rounded-xl bg-brand-deep/80 border text-sm text-white focus:outline-none focus:border-brand-teal transition-colors appearance-none ${
+                          errors.residentialBusiness ? 'border-red-500/50' : 'border-white/5'
+                        }`}
+                      >
+                        <option value="" disabled className="bg-brand-deep">
+                          Select one...
+                        </option>
+                        <option value="Residential" className="bg-slate-900 text-white">
+                          Residential
+                        </option>
+                        <option value="Business" className="bg-slate-900 text-white">
+                          Business
+                        </option>
+                      </select>
+                      {errors.residentialBusiness && (
+                        <span className="text-[10px] text-red-400 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          {errors.residentialBusiness}
+                        </span>
+                      )}
+                    </div>
+
                     <div className="flex flex-col gap-2">
                       <label htmlFor="message" className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                        Project Message *
+                        Message
                       </label>
                       <textarea
                         id="message"
@@ -410,7 +410,7 @@ export default function Contact() {
                         value={formData.message}
                         onChange={handleChange}
                         rows={5}
-                        placeholder="Tell us about your database structure, key objectives, or training requirements..."
+                        placeholder="Message"
                         className={`w-full px-4 py-3 rounded-xl bg-brand-deep/80 border text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-teal transition-colors resize-none ${
                           errors.message ? 'border-red-500/50' : 'border-white/5'
                         }`}
@@ -423,7 +423,6 @@ export default function Contact() {
                       )}
                     </div>
 
-                    {/* Submit Button */}
                     <div className="pt-2">
                       <button
                         type="submit"
@@ -433,12 +432,12 @@ export default function Contact() {
                         {isSubmitting ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Sending Request...</span>
+                            <span>Sending...</span>
                           </>
                         ) : (
                           <>
                             <Send className="w-4 h-4" />
-                            <span>Request Consultation</span>
+                            <span>send messages</span>
                           </>
                         )}
                       </button>
@@ -448,7 +447,30 @@ export default function Contact() {
               </AnimatePresence>
             </AnimatedSection>
           </div>
+        </div>
+      </section>
 
+      <section className="py-16 px-6">
+        <div className="max-w-7xl mx-auto">
+          <AnimatedSection className="text-center flex flex-col items-center gap-4 mb-12">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Frequently Asked Questions</h2>
+            <p className="text-slate-300 max-w-3xl text-sm leading-relaxed">
+              Our FAQ section covers the most common questions about our services, features, pricing, and support. Whether you are just getting started or need help with something specific, you will find quick, helpful answers right here.
+            </p>
+          </AnimatedSection>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {faqItems.map((item, idx) => (
+              <AnimatedSection
+                key={item.question}
+                delay={idx * 0.04}
+                className="glass-panel p-6 rounded-2xl border border-white/5 flex flex-col gap-3"
+              >
+                <h3 className="text-base font-bold text-white leading-relaxed">{item.question}</h3>
+                <p className="text-sm text-slate-300 leading-relaxed">{item.answer}</p>
+              </AnimatedSection>
+            ))}
+          </div>
         </div>
       </section>
     </div>
