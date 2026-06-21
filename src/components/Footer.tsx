@@ -179,7 +179,7 @@ export default function Footer() {
               <Mail className="w-5 h-5 text-brand-teal shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5">
                 <span className="text-xs text-slate-500 font-mono">EMAIL</span>
-                <a href="mailto:sales@duradata.co.za" className="hover:text-brand-teal transition-colors">
+                <a href="mailto:info@duradata.co.za" className="hover:text-brand-teal transition-colors">
                   info@duradata.co.za
                 </a>
               </div>
@@ -194,9 +194,9 @@ export default function Footer() {
           &copy; {currentYear} DuraData (Pty) Ltd. All rights reserved.
         </div>
         <div className="flex gap-6">
-          <a href="#" className="hover:text-slate-300 transition-colors">Privacy Policy</a>
-          <a href="#" className="hover:text-slate-300 transition-colors">Terms of Service</a>
-          <a href="#" className="hover:text-slate-300 transition-colors">PAIA Manual</a>
+          <Link to="/contact?message=Hi%2C%20please%20share%20your%20Privacy%20Policy." className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+          <Link to="/contact?message=Hi%2C%20please%20share%20your%20Terms%20of%20Service." className="hover:text-slate-300 transition-colors">Terms of Service</Link>
+          <Link to="/contact?message=Hi%2C%20please%20share%20your%20PAIA%20Manual." className="hover:text-slate-300 transition-colors">PAIA Manual</Link>
         </div>
       </div>
     </footer>

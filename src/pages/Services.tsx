@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart3, Brain, Database, Cpu, Cloud, Code,
@@ -235,13 +236,13 @@ export default function Services() {
                 {/* Footer Action */}
                 <div className="pt-6 border-t border-white/5 flex justify-between items-center flex-wrap gap-4">
                   <span className="text-xs text-slate-500 font-mono">Platform compliance standard: ISO 27001 ready</span>
-                  <a
-                    href={`/contact?interest=${encodeURIComponent(selectedCategory.title)}`}
+                  <Link
+                    to={`/contact?interest=${encodeURIComponent(selectedCategory.title)}`}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-blue hover:bg-brand-azure text-xs font-bold text-white transition-all duration-200"
                   >
                     <span>Request Service Quote</span>
                     <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
+                  </Link>
                 </div>
               </motion.div>
             </AnimatePresence>

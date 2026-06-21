@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingBag, Factory, Shield, HeartPulse, Landmark, PhoneCall, 
@@ -227,13 +228,13 @@ export default function Industries() {
 
                 {/* Footer Link */}
                 <div className="mt-8 pt-6 border-t border-white/5 flex justify-end">
-                  <a
-                    href={`/contact?interest=${encodeURIComponent(`${selectedIndustry.name} Consulting`)}`}
+                  <Link
+                    to={`/contact?interest=${encodeURIComponent(`${selectedIndustry.name} Consulting`)}`}
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-brand-blue to-brand-azure text-xs font-bold text-white transition-all duration-200 hover:scale-[1.01]"
                   >
                     <span>Request Sector Case Study</span>
                     <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
+                  </Link>
                 </div>
               </motion.div>
             </AnimatePresence>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, ArrowRight, Filter } from 'lucide-react';
 
@@ -173,13 +174,13 @@ export default function CaseStudies() {
                       <span className="text-xs sm:text-sm font-bold text-white">{study.outcome}</span>
                     </div>
                   </div>
-                  <a
-                    href="/contact"
+                  <Link
+                    to="/contact"
                     className="text-xs font-semibold text-brand-teal flex items-center gap-1 hover:text-white transition-colors group shrink-0"
                   >
                     <span>Request Project Review</span>
                     <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </a>
+                  </Link>
                 </div>
               </motion.div>
             ))}

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { 
   BarChart3, Database, ArrowRight, Activity, Cpu
 } from 'lucide-react';
@@ -134,13 +135,13 @@ export default function Solutions() {
                   <h2 className="text-3xl font-extrabold text-white">{solution.title}</h2>
                   <p className="text-sm text-slate-300 leading-relaxed mt-2">{solution.desc}</p>
                   <div className="mt-6">
-                    <a
-                      href={`/contact?interest=${encodeURIComponent(solution.title)}`}
+                    <Link
+                      to={`/contact?interest=${encodeURIComponent(solution.title)}`}
                       className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-brand-deep border border-white/10 hover:border-brand-teal/40 text-xs font-bold text-white transition-all duration-200"
                     >
                       <span>Discuss {solution.title}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
-                    </a>
+                    </Link>
                   </div>
                 </div>
 

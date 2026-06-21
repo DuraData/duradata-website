@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Clock, Award, Users, Video, 
@@ -256,13 +257,13 @@ export default function Training() {
 
                   {/* CTA link */}
                   <div className="pt-6 mt-6 border-t border-white/5 flex justify-end">
-                    <a
-                      href={`/contact?interest=Training&message=${encodeURIComponent(`Hi, I'm interested in the ${course.title} training path.`)}`}
+                    <Link
+                      to={`/contact?interest=Training&message=${encodeURIComponent(`Hi, I'm interested in the ${course.title} training path.`)}`}
                       className="text-xs font-semibold text-brand-teal flex items-center gap-1 hover:text-white transition-colors group"
                     >
                       <span>Request Syllabus & Booking</span>
                       <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                    </a>
+                    </Link>
                   </div>
                 </motion.div>
               ))}
