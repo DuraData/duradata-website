@@ -25,6 +25,16 @@ if (!existsSync('dist')) {
   process.exit(1);
 }
 
+const distNodeModulesPath = path.resolve('dist', 'node_modules');
+if (existsSync(distNodeModulesPath)) {
+  rmSync(distNodeModulesPath, { recursive: true, force: true });
+}
+
+const distVitePath = path.resolve('dist', '.vite');
+if (existsSync(distVitePath)) {
+  rmSync(distVitePath, { recursive: true, force: true });
+}
+
 try {
   const gitDir = run('git rev-parse --git-dir');
   const indexFile = path.resolve(gitDir, `${branchName}.index`);
