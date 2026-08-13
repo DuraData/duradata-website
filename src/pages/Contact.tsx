@@ -75,6 +75,7 @@ export default function Contact() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validate = (): boolean => {
     const tempErrors: FormErrors = {};
@@ -122,25 +123,52 @@ export default function Contact() {
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
+    if (submitError) {
+      setSubmitError(null);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
 
-    if (validate()) {
-      setIsSubmitting(true);
+    if (!validate()) {
+      return;
+    }
 
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setSubmitSuccess(true);
-        setFormData({
-          name: '',
-          email: '',
-          address: '',
-          residentialBusiness: '',
-          message: '',
-        });
-      }, 1500);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (data && data.errors && typeof data.errors === 'object') {
+          setErrors((prev) => ({ ...prev, ...data.errors }));
+        }
+        throw new Error(data.error || `Request failed (status ${response.status})`);
+      }
+
+      setSubmitSuccess(true);
+      setFormData({
+        name: '',
+        email: '',
+        address: '',
+        residentialBusiness: '',
+        message: '',
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      setSubmitError(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -288,7 +316,10 @@ export default function Contact() {
                       </p>
                     </div>
                     <button
-                      onClick={() => setSubmitSuccess(false)}
+                      onClick={() => {
+                        setSubmitSuccess(false);
+                        setSubmitError(null);
+                      }}
                       className="px-6 py-2.5 rounded-full bg-brand-deep border border-white/15 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
                     >
                       Send Another Message
@@ -422,6 +453,23 @@ export default function Contact() {
                         </span>
                       )}
                     </div>
+
+                    <AnimatePresence>
+                      {submitError && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20"
+                        >
+                          <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm font-semibold text-red-300">Failed to Send</span>
+                            <span className="text-xs text-red-400/90 leading-relaxed">{submitError}</span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     <div className="pt-2">
                       <button
