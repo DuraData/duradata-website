@@ -252,7 +252,7 @@ app.get('/api/health', (_req, res) => {
 if (process.env.NODE_ENV === 'production') {
   const distDir = path.resolve(__dirname, '..', 'dist');
   app.use(express.static(distDir));
-  app.get('*', (_req, res) => {
+  app.use((_req, res) => {
     res.sendFile(path.join(distDir, 'index.html'));
   });
 }

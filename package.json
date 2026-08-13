@@ -11,6 +11,7 @@
     "dev:client": "vite",
     "dev:server": "node server/index.js",
     "build": "tsc -b && vite build",
+    "postinstall": "npm run build",
     "start": "cross-env NODE_ENV=production node server/index.js",
     "lint": "eslint .",
     "preview": "npm run build && cross-env NODE_ENV=production node server/index.js"
@@ -34,7 +35,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
-    "concurrently": "^10.0.4",
+    "concurrently": "^8.2.2",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "eslint": "^10.3.0",
