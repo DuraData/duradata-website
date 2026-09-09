@@ -15,7 +15,8 @@ export function validateProductionEnvironment() {
   if (isSafeE2ETestMode()) return
   const appUrl = new URL(required("NEXT_PUBLIC_APP_URL"))
   if (appUrl.protocol !== "https:") throw new Error("NEXT_PUBLIC_APP_URL must use HTTPS in production")
-  required("PAYNOW_INTEGRATION_ID")
-  required("PAYNOW_INTEGRATION_KEY")
+  // Paynow is optional: preparePaynowCheckout() and verifyPaynowPayment()
+  // already degrade to a clear "not configured" result/error at the point
+  // of use when these are absent, so checkout is the only thing affected.
   if (process.env.PASSWORD_RESET_TOKEN_PEPPER?.trim().length && process.env.PASSWORD_RESET_TOKEN_PEPPER.trim().length < 32) throw new Error("PASSWORD_RESET_TOKEN_PEPPER must be at least 32 characters")
 }

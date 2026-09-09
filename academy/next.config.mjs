@@ -9,6 +9,16 @@ dotenv.config({ path: path.join(academyRoot, ".env") })
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    // This is an npm workspace (academy/ inside the duradata-website repo
+    // root), and this app also imports ../../src directly (see
+    // components/marketing-app.tsx). Without an explicit root, Turbopack
+    // infers academy/ itself as the project root and refuses to resolve
+    // anything above it — including devDependencies hoisted only to the
+    // repo root's node_modules (e.g. @tailwindcss/postcss) and the
+    // marketing site's source under ../src.
+    root: path.resolve(academyRoot, '..'),
+  },
   images: {
     // AVIF first: ~30-50% smaller than WebP at equal quality, huge win on
     // 3G/4G bundles. Next.js negotiates via Accept header, falling back to
