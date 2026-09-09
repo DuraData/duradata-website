@@ -17,7 +17,7 @@ export default function App() {
   return (
     <Router>
       <ScrollToTop />
-      <div className="flex flex-col min-h-screen bg-brand-deep text-white selection:bg-brand-teal selection:text-brand-deep">
+      <div className="duradata-site flex flex-col min-h-screen bg-brand-deep text-white selection:bg-brand-teal selection:text-brand-deep">
         <Navbar />
         <main className="flex-grow">
           <Routes>

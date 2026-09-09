@@ -8,7 +8,7 @@ export default function Footer() {
     { name: 'About Us', path: '/about' },
     { name: 'Services', path: '/services' },
     { name: 'Solutions', path: '/solutions' },
-    { name: 'Training Academy', path: '/training' },
+    { name: 'Training Services', path: '/training' },
     { name: 'Case Studies', path: '/case-studies' },
   ];
 
@@ -111,6 +111,7 @@ export default function Footer() {
         <div>
           <h4 className="text-base font-bold text-white tracking-wider uppercase mb-6">Company</h4>
           <ul className="flex flex-col gap-3">
+            <li><a href="https://academy.duradata.co.za" className="text-sm text-slate-400 hover:text-brand-teal transition-colors">Duradata Academy</a></li>
             {companyLinks.map((link) => (
               <li key={link.name}>
                 <Link

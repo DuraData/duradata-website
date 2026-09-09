@@ -1,0 +1,991 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  student
+  instructor
+  admin
+  internal_instructor
+}
+
+enum UserStatus {
+  active
+  suspended
+  banned
+}
+
+enum InstructorApplicationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum ExaminingBody {
+  zimsec
+  cambridge
+}
+
+enum SubjectPackageStatus {
+  draft
+  pending
+  approved
+  rejected
+  suspended
+}
+
+enum CourseStatus {
+  draft
+  pending
+  approved
+  rejected
+  suspended
+}
+
+enum CurrencyCode {
+  ZAR
+  USD
+  ZWL
+}
+
+enum TransactionType {
+  enrollment
+  payout
+  commission
+  refund
+  adjustment
+}
+
+enum TransactionStatus {
+  pending
+  succeeded
+  failed
+  reversed
+}
+
+enum ReportType {
+  course_complaint
+  user_report
+}
+
+enum ReportStatus {
+  open
+  reviewing
+  resolved
+  dismissed
+}
+
+enum SubscriptionStatus {
+  active
+  trialing
+  past_due
+  canceled
+}
+
+enum InvoiceStatus {
+  paid
+  open
+  void
+  uncollectible
+}
+
+enum LiveLessonStatus {
+  upcoming
+  completed
+  canceled
+}
+
+enum HomeworkSubmissionStatus {
+  not_submitted
+  submitted
+  graded
+}
+
+enum ExamResourceKind {
+  paper
+  memo
+}
+
+enum ResourceKind {
+  notes
+  study_resource
+  worksheet
+  recording
+}
+
+enum SubjectEnrollmentStatus {
+  pending
+  active
+  expired
+  cancelled
+}
+
+enum BillingPeriod {
+  monthly
+}
+
+enum TutorialStatus {
+  draft
+  published
+}
+
+enum TutorialDifficulty {
+  beginner
+  intermediate
+  advanced
+}
+
+enum OrganizationMemberRole {
+  learner
+  manager
+  administrator
+}
+
+model User {
+  id        String     @id @default(uuid()) @db.Char(36)
+  name      String
+  email     String     @unique
+  passwordHash String?
+  mustChangePassword Boolean @default(false)
+  resetToken String?
+  resetTokenExpiresAt DateTime?
+  role      UserRole
+  status    UserStatus @default(active)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now()) @updatedAt
+
+  courses     Course[]      @relation("InstructorCourses")
+  enrollments Enrollment[]
+  progress    Progress[]
+  favorites   Favorite[]
+  instructorApplication InstructorApplication? @relation("InstructorApplicationUser")
+  reviewedInstructorApplications InstructorApplication[] @relation("InstructorApplicationReviewer")
+
+  transactions   Transaction[] @relation("TransactionUser")
+  reportsMade    Report[]      @relation("ReportReporter")
+  reportsAgainst Report[]      @relation("ReportAccusedUser")
+  reportsResolved Report[]     @relation("ReportResolver")
+
+  certificates  Certificate[]
+  notifications Notification[]
+  subscription  Subscription?
+  invoices      Invoice[]
+  achievements  UserAchievement[]
+
+  liveLessonsTeaching LiveLesson[] @relation("LiveLessonTeacher")
+  homeworkTeaching HomeworkAssignment[] @relation("HomeworkTeacher")
+  homeworkSubmissions HomeworkSubmission[] @relation("HomeworkStudent")
+  announcementsMade Announcement[]
+  liveLessonAttendance Attendance[]
+
+  subjectPackagesTeaching SubjectPackage[] @relation("SubjectPackageTeacher")
+  subjectEnrollments SubjectEnrollment[]
+  subjectLessonProgress SubjectLessonProgress[]
+  subjectQuizAttempts SubjectQuizAttempt[]
+  passwordResetTokens PasswordResetToken[]
+  passwordResetRequests PasswordResetRequest[]
+  sessions Session[]
+  tutorialsCreated Tutorial[] @relation("TutorialCreator")
+  tutorialsUpdated Tutorial[] @relation("TutorialUpdater")
+  tutorialProgress TutorialProgress[]
+  tutorialBookmarks TutorialBookmark[]
+  organizationMemberships OrganizationMember[]
+  organizationsCreated Organization[] @relation("OrganizationCreator")
+  corporateAssignmentsCreated CourseAssignment[] @relation("CourseAssignmentCreator")
+}
+
+model Session {
+  id        String    @id @default(uuid()) @db.Char(36)
+  userId    String    @db.Char(36)
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  lastUsedAt DateTime @default(now())
+  revokedAt DateTime?
+  userAgent String?
+  ipHash    String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id            String   @id @default(uuid()) @db.Char(36)
+  userId        String   @db.Char(36)
+  tokenHash     String   @unique
+  expiresAt     DateTime
+  usedAt        DateTime?
+  invalidatedAt DateTime?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetRequest {
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String?  @db.Char(36)
+  emailHash String
+  ipHash    String
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([emailHash, createdAt])
+  @@index([ipHash, createdAt])
+  @@index([createdAt])
+}
+
+model Course {
+  id           String      @id @default(uuid()) @db.Char(36)
+  title        String
+  description  String @db.Text
+  price        Int
+  moderationNote String? @db.Text
+  instructorId String   @db.Char(36)
+  status       CourseStatus @default(draft)
+  featured     Boolean   @default(false)
+  imageUrl     String?
+  categoryId   String?   @db.Char(36)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  instructor  User        @relation("InstructorCourses", fields: [instructorId], references: [id])
+  sections    Section[]
+  enrollments Enrollment[]
+  favorites   Favorite[]
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  transactions Transaction[] @relation("TransactionCourse")
+  reports     Report[]
+  certificates Certificate[]
+  liveLessons LiveLesson[] @relation("LiveLessonCourse")
+  corporateAssignments CourseAssignment[]
+}
+
+model Organization {
+  id          String   @id @default(uuid()) @db.Char(36)
+  name        String
+  slug        String   @unique
+  active      Boolean  @default(true)
+  createdById String   @db.Char(36)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  createdBy   User @relation("OrganizationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  members     OrganizationMember[]
+  assignments CourseAssignment[]
+
+  @@index([active, name])
+}
+
+model OrganizationMember {
+  id             String                 @id @default(uuid()) @db.Char(36)
+  organizationId String                 @db.Char(36)
+  userId         String                 @db.Char(36)
+  role           OrganizationMemberRole @default(learner)
+  createdAt      DateTime               @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId, role])
+}
+
+model CourseAssignment {
+  id             String    @id @default(uuid()) @db.Char(36)
+  organizationId String    @db.Char(36)
+  courseId       String    @db.Char(36)
+  assignedById   String    @db.Char(36)
+  dueAt          DateTime?
+  required       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  assignedBy   User         @relation("CourseAssignmentCreator", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, courseId])
+  @@index([courseId, dueAt])
+}
+
+model Section {
+  id       String @id @default(uuid()) @db.Char(36)
+  title    String
+  courseId String @db.Char(36)
+  order    Int    @default(0)
+
+  course  Course   @relation(fields: [courseId], references: [id])
+  lessons Lesson[]
+}
+
+model Lesson {
+  id        String @id @default(uuid()) @db.Char(36)
+  title     String
+  videoUrl  String @db.Text
+  sectionId String @db.Char(36)
+  order     Int    @default(0)
+
+  section  Section    @relation(fields: [sectionId], references: [id])
+  progress Progress[]
+}
+
+model Enrollment {
+  id       String @id @default(uuid()) @db.Char(36)
+  userId   String @db.Char(36)
+  courseId String @db.Char(36)
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+  transactions Transaction[] @relation("TransactionEnrollment")
+
+  @@unique([userId, courseId])
+}
+
+model Progress {
+  id        String  @id @default(uuid()) @db.Char(36)
+  userId    String  @db.Char(36)
+  lessonId  String  @db.Char(36)
+  completed Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, lessonId])
+}
+
+model Favorite {
+  id       String @id @default(uuid()) @db.Char(36)
+  userId   String @db.Char(36)
+  courseId String @db.Char(36)
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model Category {
+  id        String   @id @default(uuid()) @db.Char(36)
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses Course[]
+  liveLessons LiveLesson[]
+  subjectPackages SubjectPackage[]
+}
+
+model InstructorApplication {
+  id         String                      @id @default(uuid()) @db.Char(36)
+  userId     String                      @unique @db.Char(36)
+  status     InstructorApplicationStatus @default(pending)
+  createdAt  DateTime                    @default(now())
+  updatedAt  DateTime                    @updatedAt
+  reviewedAt DateTime?
+  reviewerId String?                     @db.Char(36)
+  notes      String? @db.Text
+  phone      String?
+  linkedinUrl String?
+  expertise  String? @db.Text
+  yearsExperience Int?
+  certifications String? @db.Text
+  biography  String? @db.Text
+  sampleCourseProposal String? @db.Text
+  preferredCategorySlugs Json @default("[]")
+  resumeFileName String?
+  resumeFileType String?
+  resumeFileSize Int?
+  resumeData Bytes? @db.LongBlob
+
+  user     User  @relation("InstructorApplicationUser", fields: [userId], references: [id])
+  reviewer User? @relation("InstructorApplicationReviewer", fields: [reviewerId], references: [id])
+}
+
+model Transaction {
+  id           String            @id @default(uuid()) @db.Char(36)
+  type         TransactionType
+  status       TransactionStatus @default(succeeded)
+  currency     CurrencyCode      @default(USD)
+  amount       Int
+  reference    String?
+  description  String? @db.Text
+  userId       String?           @db.Char(36)
+  courseId     String?           @db.Char(36)
+  enrollmentId String?           @db.Char(36)
+  subjectPackageId String?       @db.Char(36)
+  providerPollUrl String? @db.Text
+  providerReference String?
+  verifiedAt DateTime?
+  createdAt    DateTime          @default(now())
+
+  user       User?       @relation("TransactionUser", fields: [userId], references: [id])
+  course     Course?     @relation("TransactionCourse", fields: [courseId], references: [id])
+  enrollment Enrollment? @relation("TransactionEnrollment", fields: [enrollmentId], references: [id])
+  subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
+
+  @@unique([reference])
+  @@unique([enrollmentId, type])
+  @@index([userId, status, createdAt])
+  @@index([subjectPackageId, status])
+}
+
+model Report {
+  id            String       @id @default(uuid()) @db.Char(36)
+  type          ReportType
+  status        ReportStatus @default(open)
+  reporterId    String       @db.Char(36)
+  courseId      String?      @db.Char(36)
+  accusedUserId String?      @db.Char(36)
+  message       String @db.Text
+  createdAt     DateTime     @default(now())
+  resolvedAt    DateTime?
+  resolverId    String?      @db.Char(36)
+
+  reporter    User   @relation("ReportReporter", fields: [reporterId], references: [id])
+  course      Course? @relation(fields: [courseId], references: [id])
+  accusedUser User?  @relation("ReportAccusedUser", fields: [accusedUserId], references: [id])
+  resolver    User?  @relation("ReportResolver", fields: [resolverId], references: [id])
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     String @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model Certificate {
+  id            String   @id @default(uuid()) @db.Char(36)
+  certificateId String   @unique
+  userId        String   @db.Char(36)
+  courseId      String   @db.Char(36)
+  issuedAt      DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model AchievementDefinition {
+  id          String   @id @default(uuid()) @db.Char(36)
+  code        String   @unique
+  name        String
+  description String @db.Text
+  icon        String?
+  createdAt   DateTime @default(now())
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid()) @db.Char(36)
+  userId        String   @db.Char(36)
+  achievementId String   @db.Char(36)
+  earnedAt      DateTime @default(now())
+
+  user        User                  @relation(fields: [userId], references: [id])
+  achievement AchievementDefinition @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @db.Char(36)
+  title     String
+  body      String? @db.Text
+  href      String? @db.Text
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+}
+
+model Subscription {
+  id                  String             @id @default(uuid()) @db.Char(36)
+  userId              String             @unique @db.Char(36)
+  planName            String             @default("Free")
+  status              SubscriptionStatus @default(active)
+  currentPeriodStart  DateTime           @default(now())
+  currentPeriodEnd    DateTime?
+  cancelAtPeriodEnd   Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Invoice {
+  id        String      @id @default(uuid()) @db.Char(36)
+  userId    String      @db.Char(36)
+  currency  CurrencyCode @default(USD)
+  amount    Int
+  status    InvoiceStatus @default(open)
+  reference String?
+  issuedAt  DateTime    @default(now())
+  paidAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, issuedAt])
+  @@unique([userId, reference])
+}
+
+model LiveLesson {
+  id              String           @id @default(uuid()) @db.Char(36)
+  title           String
+  subject         String
+  grade           Int?
+  status          LiveLessonStatus @default(upcoming)
+  startsAt        DateTime
+  durationMinutes Int
+  meetingLink     String? @db.Text
+  recordingUrl    String? @db.Text
+  teacherId       String           @db.Char(36)
+  categoryId      String?          @db.Char(36)
+  subjectPackageId String?         @db.Char(36)
+  courseId        String?          @db.Char(36)
+  createdAt       DateTime         @default(now())
+
+  teacher    User      @relation("LiveLessonTeacher", fields: [teacherId], references: [id])
+  category   Category? @relation(fields: [categoryId], references: [id])
+  subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
+  course     Course?   @relation("LiveLessonCourse", fields: [courseId], references: [id])
+  attendance Attendance[]
+
+  @@index([startsAt])
+  @@index([grade, subject])
+}
+
+model Attendance {
+  id           String   @id @default(uuid()) @db.Char(36)
+  liveLessonId String   @db.Char(36)
+  userId       String   @db.Char(36)
+  joinedAt     DateTime @default(now())
+
+  liveLesson LiveLesson @relation(fields: [liveLessonId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@unique([liveLessonId, userId])
+}
+
+model HomeworkAssignment {
+  id          String   @id @default(uuid()) @db.Char(36)
+  title       String
+  description String? @db.Text
+  subject     String
+  grade       Int
+  dueAt       DateTime
+  teacherId   String   @db.Char(36)
+  subjectPackageId String? @db.Char(36)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  teacher     User                 @relation("HomeworkTeacher", fields: [teacherId], references: [id])
+  subjectPackage SubjectPackage?   @relation(fields: [subjectPackageId], references: [id])
+  submissions HomeworkSubmission[]
+
+  @@index([dueAt])
+  @@index([grade, subject])
+}
+
+model HomeworkSubmission {
+  id           String                   @id @default(uuid()) @db.Char(36)
+  assignmentId String                   @db.Char(36)
+  studentId    String                   @db.Char(36)
+  status       HomeworkSubmissionStatus @default(not_submitted)
+  answerText   String? @db.Text
+  fileUrl      String? @db.Text
+  feedback     String? @db.Text
+  submittedAt  DateTime?
+  updatedAt    DateTime                 @default(now()) @updatedAt
+
+  assignment HomeworkAssignment @relation(fields: [assignmentId], references: [id])
+  student    User               @relation("HomeworkStudent", fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+}
+
+model ExamResource {
+  id        String           @id @default(uuid()) @db.Char(36)
+  title     String
+  kind      ExamResourceKind
+  subject   String
+  grade     Int
+  year      Int
+  term      Int?
+  examType  String?
+  fileUrl   String? @db.Text
+  subjectPackageId String? @db.Char(36)
+  createdAt DateTime @default(now())
+
+  subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
+
+  @@index([grade, subject, year])
+}
+
+model LearningResource {
+  id        String       @id @default(uuid()) @db.Char(36)
+  title     String
+  kind      ResourceKind
+  subject   String
+  grade     Int
+  fileUrl   String? @db.Text
+  subjectPackageId String? @db.Char(36)
+  createdAt DateTime @default(now())
+
+  subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
+}
+
+model Announcement {
+  id        String   @id @default(uuid()) @db.Char(36)
+  title     String
+  body      String @db.Text
+  grade     Int?
+  subject   String?
+  authorId  String   @db.Char(36)
+  subjectPackageId String? @db.Char(36)
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id])
+  subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
+}
+
+model SubjectPackage {
+  id                 String   @id @default(uuid()) @db.Char(36)
+  title              String
+  description        String @db.Text
+  subject            String
+  grade              Int
+  term               Int?
+  price              Int
+  currency           CurrencyCode @default(USD)
+  billingPeriod      BillingPeriod @default(monthly)
+  isCapsAligned      Boolean @default(true)
+  examiningBody      ExaminingBody @default(zimsec)
+  includesLiveLessons Boolean @default(true)
+  isExamPrep         Boolean @default(false)
+  isHolidayLearning  Boolean @default(false)
+  status             SubjectPackageStatus @default(approved)
+  moderationNote     String? @db.Text
+  teacherId          String? @db.Char(36)
+  categoryId         String? @db.Char(36)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now()) @updatedAt
+
+  teacher       User?     @relation("SubjectPackageTeacher", fields: [teacherId], references: [id])
+  category      Category? @relation(fields: [categoryId], references: [id])
+  enrollments   SubjectEnrollment[]
+  liveLessons   LiveLesson[]
+  homework      HomeworkAssignment[]
+  examResources ExamResource[]
+  resources     LearningResource[]
+  announcements Announcement[]
+  sections      SubjectSection[]
+  transactions  Transaction[]
+
+  @@index([grade, subject])
+  @@index([term])
+}
+
+model SubjectSection {
+  id               String @id @default(uuid()) @db.Char(36)
+  title            String
+  subjectPackageId String @db.Char(36)
+  order            Int    @default(0)
+
+  subjectPackage SubjectPackage   @relation(fields: [subjectPackageId], references: [id])
+  lessons        SubjectLesson[]
+}
+
+model SubjectLesson {
+  id        String @id @default(uuid()) @db.Char(36)
+  title     String
+  videoUrl  String @db.Text
+  sectionId String @db.Char(36)
+  order     Int    @default(0)
+
+  section  SubjectSection          @relation(fields: [sectionId], references: [id])
+  progress SubjectLessonProgress[]
+  quiz     SubjectQuiz?
+}
+
+model SubjectLessonProgress {
+  id          String    @id @default(uuid()) @db.Char(36)
+  userId      String    @db.Char(36)
+  lessonId    String    @db.Char(36)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  user   User          @relation(fields: [userId], references: [id])
+  lesson SubjectLesson @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, lessonId])
+}
+
+enum SubjectQuizQuestionType {
+  multiple_choice
+  short_answer
+}
+
+model SubjectQuiz {
+  id        String   @id @default(uuid()) @db.Char(36)
+  lessonId  String   @unique @db.Char(36)
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  lesson    SubjectLesson         @relation(fields: [lessonId], references: [id])
+  questions SubjectQuizQuestion[]
+  attempts  SubjectQuizAttempt[]
+}
+
+model SubjectQuizQuestion {
+  id            String                  @id @default(uuid()) @db.Char(36)
+  quizId        String                  @db.Char(36)
+  type          SubjectQuizQuestionType
+  prompt        String @db.Text
+  order         Int                     @default(0)
+  options       Json?
+  correctOption Int?
+
+  quiz    SubjectQuiz          @relation(fields: [quizId], references: [id])
+  answers SubjectQuizAnswer[]
+}
+
+model SubjectQuizAttempt {
+  id           String    @id @default(uuid()) @db.Char(36)
+  quizId       String    @db.Char(36)
+  studentId    String    @db.Char(36)
+  score        Int?
+  submittedAt  DateTime?
+  gradedAt     DateTime?
+  createdAt    DateTime  @default(now())
+
+  quiz    SubjectQuiz         @relation(fields: [quizId], references: [id])
+  student User                @relation(fields: [studentId], references: [id])
+  answers SubjectQuizAnswer[]
+
+  @@unique([quizId, studentId])
+}
+
+model SubjectQuizAnswer {
+  id               String  @id @default(uuid()) @db.Char(36)
+  attemptId        String  @db.Char(36)
+  questionId       String  @db.Char(36)
+  selectedOption   Int?
+  textAnswer       String? @db.Text
+  isCorrect        Boolean?
+  reviewerFeedback String? @db.Text
+
+  attempt  SubjectQuizAttempt  @relation(fields: [attemptId], references: [id])
+  question SubjectQuizQuestion @relation(fields: [questionId], references: [id])
+
+  @@unique([attemptId, questionId])
+}
+
+model SubjectEnrollment {
+  id              String                 @id @default(uuid()) @db.Char(36)
+  userId          String                 @db.Char(36)
+  subjectPackageId String                @db.Char(36)
+  status          SubjectEnrollmentStatus @default(pending)
+  grade           Int
+  price           Int
+  currency        CurrencyCode @default(USD)
+  billingPeriod   BillingPeriod @default(monthly)
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  user           User           @relation(fields: [userId], references: [id])
+  subjectPackage SubjectPackage @relation(fields: [subjectPackageId], references: [id])
+
+  @@unique([userId, subjectPackageId])
+  @@index([status])
+}
+
+model RateLimitEvent {
+  id        String   @id @default(uuid()) @db.Char(36)
+  action    String
+  keyHash   String
+  createdAt DateTime @default(now())
+
+  @@index([action, keyHash, createdAt])
+  @@index([createdAt])
+}
+
+model Tutorial {
+  id                String             @id @default(uuid()) @db.Char(36)
+  slug              String             @unique
+  title             String
+  shortDescription  String @db.Text
+  description       String @db.Text
+  icon              String?
+  imageUrl          String?
+  difficulty        TutorialDifficulty @default(beginner)
+  estimatedDuration Int
+  status            TutorialStatus     @default(draft)
+  publishedAt       DateTime?
+  createdById       String?            @db.Char(36)
+  updatedById       String?            @db.Char(36)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now()) @updatedAt
+
+  createdBy User? @relation("TutorialCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("TutorialUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  sections TutorialSection[]
+  progress TutorialProgress[]
+  bookmarks TutorialBookmark[]
+
+  @@index([status, publishedAt])
+}
+
+model TutorialSection {
+  id          String @id @default(uuid()) @db.Char(36)
+  tutorialId  String @db.Char(36)
+  title       String
+  slug        String
+  description String? @db.Text
+  order       Int    @default(0)
+
+  tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  lessons  TutorialLesson[]
+
+  @@unique([tutorialId, slug])
+  @@index([tutorialId, order])
+}
+
+model TutorialLesson {
+  id               String   @id @default(uuid()) @db.Char(36)
+  sectionId        String   @db.Char(36)
+  title            String
+  slug             String
+  summary          String @db.Text
+  content          Json
+  order            Int      @default(0)
+  estimatedMinutes Int      @default(10)
+  isPublished      Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+
+  section TutorialSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  codeExamples TutorialCodeExample[]
+  exercises TutorialExercise[]
+  quiz TutorialQuiz?
+  progress TutorialProgress[]
+  bookmarks TutorialBookmark[]
+
+  @@unique([sectionId, slug])
+  @@index([sectionId, order])
+  @@index([isPublished])
+}
+
+model TutorialCodeExample {
+  id             String @id @default(uuid()) @db.Char(36)
+  lessonId       String @db.Char(36)
+  title          String
+  language       String
+  sourceCode     String @db.LongText
+  expectedOutput String? @db.Text
+  explanation    String? @db.Text
+  order          Int    @default(0)
+
+  lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  @@index([lessonId, order])
+}
+
+model TutorialExercise {
+  id             String @id @default(uuid()) @db.Char(36)
+  lessonId       String @db.Char(36)
+  title          String
+  instructions   String @db.Text
+  starterCode    String? @db.LongText
+  expectedAnswer String? @db.Text
+  explanation    String? @db.Text
+  order          Int    @default(0)
+
+  lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  @@index([lessonId, order])
+}
+
+model TutorialQuiz {
+  id       String @id @default(uuid()) @db.Char(36)
+  lessonId String @unique @db.Char(36)
+  title    String
+
+  lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions TutorialQuizQuestion[]
+}
+
+model TutorialQuizQuestion {
+  id       String @id @default(uuid()) @db.Char(36)
+  quizId   String @db.Char(36)
+  prompt   String @db.Text
+  order    Int    @default(0)
+
+  quiz TutorialQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options TutorialQuizOption[]
+  @@index([quizId, order])
+}
+
+model TutorialQuizOption {
+  id         String  @id @default(uuid()) @db.Char(36)
+  questionId String  @db.Char(36)
+  text       String @db.Text
+  isCorrect  Boolean @default(false)
+  order      Int     @default(0)
+
+  question TutorialQuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  @@index([questionId, order])
+}
+
+model TutorialProgress {
+  id           String   @id @default(uuid()) @db.Char(36)
+  userId       String   @db.Char(36)
+  tutorialId   String   @db.Char(36)
+  lessonId     String   @db.Char(36)
+  completedAt  DateTime?
+  lastViewedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId, tutorialId, lastViewedAt])
+}
+
+model TutorialBookmark {
+  id         String   @id @default(uuid()) @db.Char(36)
+  userId     String   @db.Char(36)
+  tutorialId String   @db.Char(36)
+  lessonId   String   @db.Char(36)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId, tutorialId])
+}

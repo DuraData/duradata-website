@@ -69,6 +69,7 @@ export default function Navbar() {
               {link.name}
             </NavLink>
           ))}
+          <a href="https://academy.duradata.co.za" className="text-sm font-medium tracking-wide text-slate-300 transition-colors hover:text-brand-teal">Academy</a>
         </nav>
 
         {/* CTA Button */}
@@ -121,6 +122,7 @@ export default function Navbar() {
                 </NavLink>
               </motion.div>
             ))}
+            <a href="https://academy.duradata.co.za" className="block py-1.5 text-lg font-medium text-slate-200 transition-colors hover:text-brand-teal">Duradata Academy</a>
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
