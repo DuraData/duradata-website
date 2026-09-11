@@ -15,12 +15,10 @@ await copyFile(path.join(nestedAppRoot, "server.js"), path.join(standaloneRoot, 
 await cp(nestedNextRoot, path.join(standaloneRoot, ".next"), {
   recursive: true,
   force: true,
-  // Next creates directory links here on Windows. The standalone root already
-  // contains the traced dependencies, so copying these links is unnecessary.
-  filter: (source) => {
-    const relativePath = path.relative(nestedNextRoot, source)
-    return relativePath.split(path.sep)[0] !== "node_modules"
-  },
+  // Turbopack gives externalized packages hash-suffixed links under
+  // .next/node_modules. Materialize their targets so Hostinger's artifact
+  // packager cannot drop the links or their runtime contents.
+  dereference: true,
 })
 
 await mkdir(path.join(standaloneRoot, ".next"), { recursive: true })
