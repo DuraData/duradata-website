@@ -19,3 +19,24 @@ test("production MySQL options enable TLS and parse connection details", () => {
     Object.assign(process.env, { NODE_ENV: previousNodeEnv })
   }
 })
+
+test("connection options decode a percent-encoded password", () => {
+  const previousUrl = process.env.ACADEMY_DATABASE_URL
+  process.env.ACADEMY_DATABASE_URL = "mysql://user:B%3F4puCMuUN@example.com:3306/academy"
+  try {
+    const options = mysqlConnectionOptions()
+    assert.equal(options.password, "B?4puCMuUN")
+  } finally {
+    process.env.ACADEMY_DATABASE_URL = previousUrl
+  }
+})
+
+test("an unencoded reserved character in the URL raises a clear configuration error", () => {
+  const previousUrl = process.env.ACADEMY_DATABASE_URL
+  process.env.ACADEMY_DATABASE_URL = "mysql://user:B?4puCMuUN@example.com:3306/academy"
+  try {
+    assert.throws(() => mysqlConnectionOptions(), /percent-encoded/)
+  } finally {
+    process.env.ACADEMY_DATABASE_URL = previousUrl
+  }
+})

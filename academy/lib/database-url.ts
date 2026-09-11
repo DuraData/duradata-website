@@ -17,7 +17,16 @@ export function mysqlConnectionOptions(): MySqlConnectionOptions {
   const raw = process.env.ACADEMY_TEST_DATABASE_URL?.trim() || process.env.ACADEMY_DATABASE_URL?.trim()
   if (!raw) throw new Error("ACADEMY_DATABASE_URL is required")
 
-  const url = new URL(raw)
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    throw new Error(
+      "ACADEMY_DATABASE_URL is not a valid URL. If the username or password contains " +
+        "characters like ? # / : @ or %, they must be percent-encoded " +
+        "(e.g. '?' becomes '%3F') before being placed in the connection string."
+    )
+  }
   if (url.protocol !== "mysql:") throw new Error("The Academy database URL must use the mysql:// protocol")
 
   const database = decodeURIComponent(url.pathname.replace(/^\//, ""))
