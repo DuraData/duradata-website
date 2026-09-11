@@ -9,11 +9,10 @@ dotenv.config({ path: path.join(academyRoot, ".env") })
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Hostinger's Web App runtime launches Next.js from the standalone server
-  // bundle. Keep the monorepo root in the trace so the shared marketing-site
-  // source and hoisted workspace dependencies are included in that bundle.
+  // Hostinger's Web App runtime launches Next.js from the standalone server.
+  // The post-build step flattens Next's monorepo layout into one deployable
+  // root containing server.js and its traced node_modules.
   output: 'standalone',
-  outputFileTracingRoot: path.resolve(academyRoot, '..'),
   turbopack: {
     // This is an npm workspace (academy/ inside the duradata-website repo
     // root), and this app also imports ../../src directly (see
