@@ -111,7 +111,16 @@ export default function Footer() {
         <div>
           <h4 className="text-base font-bold text-white tracking-wider uppercase mb-6">Company</h4>
           <ul className="flex flex-col gap-3">
-            <li><a href="https://academy.duradata.co.za" className="text-sm text-slate-400 hover:text-brand-teal transition-colors">Duradata Academy</a></li>
+            <li>
+              <a
+                href="https://academy.duradata.co.za"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-slate-400 hover:text-brand-teal transition-colors"
+              >
+                Duradata Academy
+              </a>
+            </li>
             {companyLinks.map((link) => (
               <li key={link.name}>
                 <Link
