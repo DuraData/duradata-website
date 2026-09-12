@@ -1,23 +1,46 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAdmin()
   if (auth instanceof Response) return auth
 
-  const organizations = await prisma.organization.findMany({
-    include: {
-      members: { include: { user: { select: { id: true, name: true, email: true, status: true } } }, orderBy: { createdAt: "asc" } },
-      assignments: { include: { course: { select: { id: true, title: true, status: true } } }, orderBy: { createdAt: "desc" } },
-    },
-    orderBy: { name: "asc" },
-  })
-  const courses = await prisma.course.findMany({ where: { status: "approved" }, select: { id: true, title: true }, orderBy: { title: "asc" } })
-  const users = await prisma.user.findMany({ where: { status: "active" }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" }, take: 500 })
-  return Response.json({ organizations, courses, users })
+  const url = new URL(req.url)
+  let list
+  try {
+    list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "name", allowedSorts: ["name", "createdAt", "updatedAt"] as const, defaultSortDirection: "asc" })
+  } catch (error) {
+    return listQueryErrorResponse(error)
+  }
+  const active = url.searchParams.get("status")
+  const where: Record<string, unknown> = {}
+  if (active === "active") where.active = true
+  if (active === "inactive") where.active = false
+  if (list.search) where.OR = [
+    { name: { contains: list.search } },
+    { slug: { contains: list.search } },
+    { members: { some: { user: { name: { contains: list.search } } } } },
+    { members: { some: { user: { email: { contains: list.search } } } } },
+  ]
+  const [organizations, totalItems, courses, users] = await prisma.$transaction([
+    prisma.organization.findMany({
+      where,
+      include: {
+        members: { include: { user: { select: { id: true, name: true, email: true, status: true } } }, orderBy: { createdAt: "asc" }, take: 25 },
+        assignments: { include: { course: { select: { id: true, title: true, status: true } } }, orderBy: { createdAt: "desc" }, take: 25 },
+        _count: { select: { members: true, assignments: true } },
+      },
+      orderBy: { [list.sort]: list.sortDirection }, skip: list.skip, take: list.take,
+    }),
+    prisma.organization.count({ where }),
+    prisma.course.findMany({ where: { status: "approved" }, select: { id: true, title: true }, orderBy: { title: "asc" }, take: 100 }),
+    prisma.user.findMany({ where: { status: "active" }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" }, take: 100 }),
+  ])
+  return Response.json({ organizations, courses, users, pagination: paginationMetadata(list.page, list.pageSize, totalItems) })
 }
 
 const CreateSchema = z.discriminatedUnion("action", [

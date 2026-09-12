@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import {
   MoreHorizontal,
@@ -19,6 +19,10 @@ import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
+import { UrlListPagination } from "@/components/shared/list-pagination"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type InstructorCourse = {
   id: string
@@ -44,29 +48,26 @@ const statusColors: Record<string, string> = {
 
 export function InstructorCoursesTable() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [filter, setFilter] = useState<string>("All")
   const [courses, setCourses] = useState<InstructorCourse[]>([])
+  const [pagination, setPagination] = useState<PaginationMetadata | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const load = async (signal?: AbortSignal) => {
+  const listState = useListUrlState()
+  const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
-    const res = await fetch("/api/instructor/courses", { cache: "no-store", signal }).catch(() => null)
+    const res = await fetch(`/api/instructor/courses${listState.queryString}`, { cache: "no-store", signal }).catch(() => null)
     const json = res ? await res.json().catch(() => null) : null
     setCourses((json?.courses ?? []) as InstructorCourse[])
+    setPagination((json?.pagination ?? null) as PaginationMetadata | null)
     setIsLoading(false)
-  }
+  }, [listState.queryString])
 
   useEffect(() => {
     const controller = new AbortController()
     void load(controller.signal)
     return () => controller.abort()
-  }, [])
-
-  const filteredCourses = useMemo(
-    () => (filter === "All" ? courses : courses.filter((c) => c.status === filter)),
-    [courses, filter]
-  )
+  }, [load])
 
   const submitForApproval = async (id: string) => {
     setBusyId(id)
@@ -110,13 +111,20 @@ export function InstructorCoursesTable() {
           <h2 className="text-lg font-semibold text-foreground">My Courses</h2>
           <p className="text-sm text-muted-foreground">Manage and track your courses</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            aria-label="Search courses"
+            placeholder="Search courses"
+            value={listState.search}
+            onChange={(event) => listState.setSearch(event.target.value)}
+            className="w-48"
+          />
           <div className="relative">
             <button
               onClick={() => setOpenDropdown(openDropdown === "__filter__" ? null : "__filter__")}
               className="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"
             >
-              {filter}
+              {listState.value("status") || "All"}
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
             {openDropdown === "__filter__" && (
@@ -127,7 +135,7 @@ export function InstructorCoursesTable() {
                     <button
                       key={status}
                       onClick={() => {
-                        setFilter(status)
+                        listState.setValue("status", status === "All" ? "" : status.toLowerCase().replace("under review", "pending"))
                         setOpenDropdown(null)
                       }}
                       className="w-full px-3 py-2 text-left text-sm transition-colors hover:bg-muted first:rounded-t-md last:rounded-b-md"
@@ -179,14 +187,14 @@ export function InstructorCoursesTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {!isLoading && filteredCourses.length === 0 ? (
+            {!isLoading && courses.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-5 py-10 text-center text-sm text-muted-foreground">
                   No courses yet. Click “New Course” to create one.
                 </td>
               </tr>
             ) : null}
-            {filteredCourses.map((course) => {
+            {courses.map((course) => {
               const busy = busyId === course.id
               const canSubmit = course.rawStatus === "draft" || course.rawStatus === "rejected"
               const canDelete = course.rawStatus === "draft"
@@ -329,19 +337,7 @@ export function InstructorCoursesTable() {
         </table>
       </div>
 
-      <div className="flex items-center justify-between px-5 py-4 border-t border-border">
-        <p className="text-sm text-muted-foreground">
-          Showing {filteredCourses.length} of {courses.length} courses
-        </p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
-            Previous
-          </Button>
-          <Button variant="outline" size="sm" disabled>
-            Next
-          </Button>
-        </div>
-      </div>
+      {pagination ? <UrlListPagination pagination={pagination} /> : null}
     </div>
   )
 }

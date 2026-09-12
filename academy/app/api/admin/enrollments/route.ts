@@ -1,19 +1,31 @@
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { getCourseLessonTotals } from "@/lib/course-progress"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
   if (auth instanceof Response) return auth
 
   const url = new URL(req.url)
-  const q = url.searchParams.get("q")?.trim() ?? ""
+  let list
+  try {
+    list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "createdAt", allowedSorts: ["createdAt"] as const })
+  } catch (error) {
+    return listQueryErrorResponse(error)
+  }
+  const q = list.search
   const courseId = url.searchParams.get("courseId")
   const userId = url.searchParams.get("userId")
+  const organizationId = url.searchParams.get("organizationId")
 
   const where: Record<string, unknown> = {}
   if (courseId) where.courseId = courseId
   if (userId) where.userId = userId
+  if (organizationId) where.AND = [
+    { user: { organizationMemberships: { some: { organizationId } } } },
+    { course: { corporateAssignments: { some: { organizationId } } } },
+  ]
   if (q) {
     where.OR = [
       { user: { email: { contains: q } } },
@@ -23,9 +35,8 @@ export async function GET(req: Request) {
     ]
   }
 
-  const enrollments = await prisma.enrollment.findMany({
-    where,
-    include: {
+  const [enrollments, totalItems] = await prisma.$transaction([
+    prisma.enrollment.findMany({ where, include: {
       user: { select: { id: true, name: true, email: true } },
       course: {
         select: {
@@ -35,10 +46,9 @@ export async function GET(req: Request) {
           instructor: { select: { id: true, name: true, email: true } },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
+    }, orderBy: { createdAt: list.sortDirection }, skip: list.skip, take: list.take }),
+    prisma.enrollment.count({ where }),
+  ])
 
   const courseIds = Array.from(new Set(enrollments.map((e) => e.courseId)))
   const userIds = Array.from(new Set(enrollments.map((e) => e.userId)))
@@ -73,6 +83,6 @@ export async function GET(req: Request) {
         course: e.course,
         progress: { totalLessons: total, completedLessons: completed, percent },
       }
-    }),
+    }), pagination: paginationMetadata(list.page, list.pageSize, totalItems),
   })
 }

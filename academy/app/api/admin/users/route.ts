@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery, parseOptionalEnum, parseOptionalUuid } from "@/lib/list-query"
 
 const adminUserListSelect = {
   id: true,
@@ -17,28 +18,41 @@ export async function GET(req: Request) {
   if (auth instanceof Response) return auth
 
   const url = new URL(req.url)
-  const role = url.searchParams.get("role")
-  const status = url.searchParams.get("status")
-  const q = url.searchParams.get("q")?.trim() ?? ""
+  let list, role, status, organizationId
+  try {
+    list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "createdAt", allowedSorts: ["createdAt", "updatedAt", "name", "email"] as const })
+    role = parseOptionalEnum(url.searchParams, "role", ["student", "instructor", "admin", "internal_instructor"] as const)
+    status = parseOptionalEnum(url.searchParams, "status", ["active", "suspended", "banned"] as const)
+    organizationId = parseOptionalUuid(url.searchParams, "organizationId")
+  } catch (error) {
+    return listQueryErrorResponse(error)
+  }
+  const q = list.search
 
   const where: Record<string, unknown> = {}
-  if (role && ["student", "instructor", "admin", "internal_instructor"].includes(role)) where.role = role
-  if (status && ["active", "suspended", "banned"].includes(status)) where.status = status
+  if (role) where.role = role
+  if (status) where.status = status
+  if (organizationId) where.organizationMemberships = { some: { organizationId } }
   if (q) {
     where.OR = [
       { email: { contains: q } },
       { name: { contains: q } },
+      { organizationMemberships: { some: { organization: { name: { contains: q } } } } },
     ]
   }
 
-  const users = await prisma.user.findMany({
-    where,
-    select: adminUserListSelect,
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
+  const [users, totalItems] = await prisma.$transaction([
+    prisma.user.findMany({
+      where,
+      select: adminUserListSelect,
+      orderBy: { [list.sort]: list.sortDirection },
+      skip: list.skip,
+      take: list.take,
+    }),
+    prisma.user.count({ where }),
+  ])
 
-  return Response.json({ users })
+  return Response.json({ users, pagination: paginationMetadata(list.page, list.pageSize, totalItems) })
 }
 
 const PatchSchema = z.object({

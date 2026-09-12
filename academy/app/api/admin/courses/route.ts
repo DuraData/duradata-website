@@ -1,41 +1,59 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery, parseOptionalBoolean, parseOptionalEnum, parseOptionalUuid } from "@/lib/list-query"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
   if (auth instanceof Response) return auth
 
   const url = new URL(req.url)
-  const status = url.searchParams.get("status")
-  const q = url.searchParams.get("q")?.trim() ?? ""
-  const featured = url.searchParams.get("featured")
+  let list, status, featured, categoryId, instructorId
+  try {
+    list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "createdAt", allowedSorts: ["createdAt", "updatedAt", "title", "popular"] as const })
+    status = parseOptionalEnum(url.searchParams, "status", ["draft", "pending", "approved", "rejected", "suspended"] as const)
+    featured = parseOptionalBoolean(url.searchParams, "featured")
+    categoryId = parseOptionalUuid(url.searchParams, "categoryId")
+    instructorId = parseOptionalUuid(url.searchParams, "instructorId")
+  } catch (error) {
+    return listQueryErrorResponse(error)
+  }
+  const q = list.search
 
   const where: Record<string, unknown> = {}
-  if (status && ["draft", "pending", "approved", "rejected", "suspended"].includes(status)) where.status = status
-  if (featured === "true") where.featured = true
-  if (featured === "false") where.featured = false
+  if (status) where.status = status
+  if (featured !== null) where.featured = featured
+  if (categoryId) where.categoryId = categoryId
+  if (instructorId) where.instructorId = instructorId
   if (q) {
     where.OR = [
       { title: { contains: q } },
       { description: { contains: q } },
       { moderationNote: { contains: q } },
       { instructor: { name: { contains: q } } },
+      { instructor: { email: { contains: q } } },
+      { category: { name: { contains: q } } },
     ]
   }
 
-  const courses = await prisma.course.findMany({
-    where,
-    include: {
-      instructor: { select: { id: true, name: true, email: true } },
-      category: { select: { id: true, name: true } },
-      _count: { select: { enrollments: true, sections: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
+  const direction = list.sortDirection
+  const orderBy = list.sort === "title" ? { title: direction } : list.sort === "updatedAt" ? { updatedAt: direction } : list.sort === "popular" ? { enrollments: { _count: direction } } : { createdAt: direction }
+  const [courses, totalItems] = await prisma.$transaction([
+    prisma.course.findMany({
+      where,
+      include: {
+        instructor: { select: { id: true, name: true, email: true } },
+        category: { select: { id: true, name: true } },
+        _count: { select: { enrollments: true, sections: true } },
+      },
+      orderBy,
+      skip: list.skip,
+      take: list.take,
+    }),
+    prisma.course.count({ where }),
+  ])
 
-  return Response.json({ courses })
+  return Response.json({ courses, pagination: paginationMetadata(list.page, list.pageSize, totalItems) })
 }
 
 const PatchSchema = z.object({

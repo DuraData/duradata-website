@@ -1,12 +1,15 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { StatusBadge } from "@/components/admin/status-badge"
 import { toast } from "@/hooks/use-toast"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import { ListPagination } from "@/components/shared/list-pagination"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type ReportRow = {
   id: string
@@ -25,24 +28,16 @@ export function AdminReportsTable() {
   const [rows, setRows] = useState<ReportRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [q, setQ] = useState("")
-  const [type, setType] = useState<string>("")
-  const [status, setStatus] = useState<string>("")
+  const listState = useListUrlState(10)
+  const type = listState.value("type")
+  const status = listState.value("status")
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
   const [busyId, setBusyId] = useState<string | null>(null)
-
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams()
-    if (type) params.set("type", type)
-    if (status) params.set("status", status)
-    if (q.trim()) params.set("q", q.trim())
-    const s = params.toString()
-    return s ? `?${s}` : ""
-  }, [type, status, q])
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
-    const res = await fetch(`/api/admin/reports${queryString}`, { cache: "no-store", signal }).catch(() => null)
+    const res = await fetch(`/api/admin/reports${listState.queryString}`, { cache: "no-store", signal }).catch(() => null)
     const json = res ? await res.json().catch(() => null) : null
     if (!res || !res.ok) {
       setRows([])
@@ -51,8 +46,9 @@ export function AdminReportsTable() {
       return
     }
     setRows((json?.reports ?? []) as ReportRow[])
+    if (json?.pagination) setPagination(json.pagination)
     setIsLoading(false)
-  }, [queryString])
+  }, [listState.queryString])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -89,12 +85,13 @@ export function AdminReportsTable() {
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="flex-1">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search reporter, course, user, message..." />
+            <Input value={listState.search} onChange={(e) => listState.setSearch(e.target.value)} aria-label="Search reports" placeholder="Search reporter, course, user, message..." />
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <select
               value={type}
-              onChange={(e) => setType(e.target.value)}
+              onChange={(e) => listState.setValue("type", e.target.value)}
+              aria-label="Filter reports by type"
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="">All types</option>
@@ -103,7 +100,8 @@ export function AdminReportsTable() {
             </select>
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => listState.setValue("status", e.target.value)}
+              aria-label="Filter reports by status"
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="">All statuses</option>
@@ -112,6 +110,8 @@ export function AdminReportsTable() {
               <option value="resolved">Resolved</option>
               <option value="dismissed">Dismissed</option>
             </select>
+            <select value={listState.value("sortDirection") || "desc"} onChange={(e) => listState.setValue("sortDirection", e.target.value)} aria-label="Sort reports" className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="desc">Newest</option><option value="asc">Oldest</option></select>
+            <Button type="button" variant="ghost" size="sm" onClick={listState.clear}>Clear</Button>
           </div>
         </div>
 
@@ -290,6 +290,7 @@ export function AdminReportsTable() {
           </table>
         </div>
       ) : null}
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
     </div>
   )
 }

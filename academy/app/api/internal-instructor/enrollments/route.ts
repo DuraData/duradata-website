@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { requireInternalInstructor } from "@/lib/rbac"
 import { getCourseLessonTotals } from "@/lib/course-progress"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 export async function GET(req: Request) {
   const auth = await requireInternalInstructor()
@@ -8,21 +9,23 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url)
   const courseId = url.searchParams.get("courseId")
+  let list
+  try { list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "createdAt", allowedSorts: ["createdAt"] as const }) } catch (error) { return listQueryErrorResponse(error) }
 
   const where: Record<string, unknown> = {
     course: { instructorId: auth.user.id },
   }
   if (courseId) where.courseId = courseId
+  if (list.search) where.OR = [{ user: { name: { contains: list.search } } }, { user: { email: { contains: list.search } } }, { course: { title: { contains: list.search } } }]
 
-  const enrollments = await prisma.enrollment.findMany({
+  const [enrollments, totalItems] = await prisma.$transaction([prisma.enrollment.findMany({
     where,
     include: {
       user: { select: { id: true, name: true, email: true } },
       course: { select: { id: true, title: true, price: true, status: true } },
     },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
+    orderBy: { createdAt: list.sortDirection }, skip: list.skip, take: list.take,
+  }), prisma.enrollment.count({ where })])
 
   const courseIds = Array.from(new Set(enrollments.map((e) => e.courseId)))
   const userIds = Array.from(new Set(enrollments.map((e) => e.userId)))
@@ -57,6 +60,6 @@ export async function GET(req: Request) {
         course: e.course,
         progress: { totalLessons: total, completedLessons: completed, percent },
       }
-    }),
+    }), pagination: paginationMetadata(list.page, list.pageSize, totalItems),
   })
 }

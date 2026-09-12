@@ -1,8 +1,13 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Users } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { ListPagination } from "@/components/shared/list-pagination"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type StudentRow = {
   courseId: string
@@ -18,35 +23,18 @@ type StudentRow = {
 export function InstructorStudentsTable() {
   const [rows, setRows] = useState<StudentRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [courseFilter, setCourseFilter] = useState<string>("All")
+  const [courseOptions, setCourseOptions] = useState<Array<{ id: string; title: string }>>([])
+  const listState = useListUrlState(10)
+  const courseFilter = listState.value("courseId")
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
 
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
+  const load = useCallback(async () => {
       setIsLoading(true)
-      const res = await fetch("/api/instructor/students", { cache: "no-store" }).catch(() => null)
+      const res = await fetch(`/api/instructor/students${listState.queryString}`, { cache: "no-store" }).catch(() => null)
       const json = res ? await res.json().catch(() => null) : null
-      if (!cancelled) {
-        setRows(json?.rows ?? [])
-        setIsLoading(false)
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const courseOptions = useMemo(() => {
-    const titles = new Map<string, string>()
-    for (const r of rows) titles.set(r.courseId, r.courseTitle)
-    return Array.from(titles.entries()).map(([id, title]) => ({ id, title }))
-  }, [rows])
-
-  const filtered = useMemo(
-    () => (courseFilter === "All" ? rows : rows.filter((r) => r.courseId === courseFilter)),
-    [rows, courseFilter]
-  )
+      setRows(json?.rows ?? []); setCourseOptions(json?.courses ?? []); if (json?.pagination) setPagination(json.pagination); setIsLoading(false)
+  }, [listState.queryString])
+  useEffect(() => { void load() }, [load])
 
   return (
     <div className="bg-card rounded-xl border border-border shadow-sm">
@@ -55,19 +43,22 @@ export function InstructorStudentsTable() {
           <h2 className="text-lg font-semibold text-foreground">Students</h2>
           <p className="text-sm text-muted-foreground">Learners enrolled in your courses</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Input aria-label="Search learners" value={listState.search} onChange={(event) => listState.setSearch(event.target.value)} placeholder="Search learner, email, or course..." className="w-full sm:w-72" />
           <select
             value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
+            onChange={(e) => listState.setValue("courseId", e.target.value)}
+            aria-label="Filter learners by course"
             className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
           >
-            <option value="All">All courses</option>
+            <option value="">All courses</option>
             {courseOptions.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.title}
               </option>
             ))}
           </select>
+          <Button variant="ghost" size="sm" onClick={listState.clear}>Clear</Button>
         </div>
       </div>
 
@@ -93,14 +84,14 @@ export function InstructorStudentsTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {!isLoading && filtered.length === 0 ? (
+            {!isLoading && rows.length === 0 ? (
               <tr>
                 <td colSpan={3} className="px-5 py-10 text-center text-sm text-muted-foreground">
                   No enrollments yet.
                 </td>
               </tr>
             ) : null}
-            {filtered.map((row) => (
+            {rows.map((row) => (
               <tr key={`${row.courseId}-${row.userId}`} className="hover:bg-muted/30 transition-colors">
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -135,6 +126,7 @@ export function InstructorStudentsTable() {
           </tbody>
         </table>
       </div>
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
     </div>
   )
 }

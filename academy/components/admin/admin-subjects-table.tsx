@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { FilePenLine, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,9 @@ import { StatusBadge } from "@/components/admin/status-badge"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { toast } from "@/hooks/use-toast"
 import { formatZimLevel, formatExaminingBody } from "@/lib/zim-education"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import { ListPagination } from "@/components/shared/list-pagination"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type SubjectRow = {
   id: string
@@ -34,22 +37,15 @@ export function AdminSubjectsTable() {
   const [rows, setRows] = useState<SubjectRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [q, setQ] = useState("")
-  const [status, setStatus] = useState<string>("")
+  const listState = useListUrlState(10)
+  const status = listState.value("status")
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
   const [busyId, setBusyId] = useState<string | null>(null)
-
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams()
-    if (status) params.set("status", status)
-    if (q.trim()) params.set("q", q.trim())
-    const s = params.toString()
-    return s ? `?${s}` : ""
-  }, [status, q])
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
-    const res = await fetch(`/api/admin/subjects${queryString}`, { cache: "no-store", signal }).catch(() => null)
+    const res = await fetch(`/api/admin/subjects${listState.queryString}`, { cache: "no-store", signal }).catch(() => null)
     const json = res ? await res.json().catch(() => null) : null
 
     if (signal?.aborted) return
@@ -62,8 +58,9 @@ export function AdminSubjectsTable() {
     }
 
     setRows((json?.subjects ?? []) as SubjectRow[])
+    if (json?.pagination) setPagination(json.pagination)
     setIsLoading(false)
-  }, [queryString])
+  }, [listState.queryString])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -100,11 +97,12 @@ export function AdminSubjectsTable() {
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="flex-1">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, subject, tutor..." />
+            <Input value={listState.search} onChange={(e) => listState.setSearch(e.target.value)} aria-label="Search academic subjects" placeholder="Search title, subject, tutor..." />
           </div>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => listState.setValue("status", e.target.value)}
+            aria-label="Filter academic subjects by status"
             className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
           >
             <option value="">All statuses</option>
@@ -114,6 +112,8 @@ export function AdminSubjectsTable() {
             <option value="rejected">Rejected</option>
             <option value="suspended">Suspended</option>
           </select>
+          <select value={listState.value("sort") || "createdAt"} onChange={(e) => listState.setValue("sort", e.target.value)} aria-label="Sort academic subjects" className="h-9 rounded-lg border border-input bg-background px-3 text-sm"><option value="createdAt">Newest</option><option value="updatedAt">Recently updated</option><option value="title">Title A-Z</option><option value="price">Price</option></select>
+          <Button type="button" variant="ghost" size="sm" onClick={listState.clear}>Clear</Button>
         </div>
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -222,6 +222,7 @@ export function AdminSubjectsTable() {
           </table>
         </div>
       ) : null}
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
     </div>
   )
 }

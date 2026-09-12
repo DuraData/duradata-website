@@ -4,10 +4,15 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CourseCard } from "@/components/shared/course-card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { businessTrainingPrograms, type TrainingBadge } from "@/lib/business-training"
 import { prisma } from "@/lib/prisma"
+import { CATALOGUE_PAGE_SIZES, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { UrlListPagination } from "@/components/shared/list-pagination"
+import { notFound } from "next/navigation"
+import { parseOptionalUuid } from "@/lib/list-query"
 
 // Feature switches are administrative controls and must take effect immediately.
 export const dynamic = "force-dynamic"
@@ -28,13 +33,29 @@ function badgeVariant(badge: TrainingBadge) {
   return "default" as const
 }
 
-export default async function CoursesPage() {
-  const courses = await prisma.course.findMany({
-    where: { status: "approved" },
-    include: { instructor: { select: { name: true } } },
-    orderBy: { title: "asc" },
-    take: 500,
-  })
+export default async function CoursesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const raw = await searchParams
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(raw)) if (typeof value === "string") params.set(key, value)
+  let list, categoryId
+  try {
+    list = parseListQuery(params, { defaultPageSize: 12, allowedPageSizes: CATALOGUE_PAGE_SIZES, defaultSort: "title", allowedSorts: ["title", "createdAt", "updatedAt", "popular"] as const, defaultSortDirection: "asc" })
+    categoryId = parseOptionalUuid(params, "categoryId")
+  } catch {
+    notFound()
+  }
+  const where: Record<string, unknown> = { status: "approved" }
+  if (categoryId) where.categoryId = categoryId
+  if (list.search) where.OR = [{ title: { contains: list.search } }, { description: { contains: list.search } }, { instructor: { name: { contains: list.search } } }, { category: { name: { contains: list.search } } }]
+  const orderBy = list.sort === "popular" ? { enrollments: { _count: list.sortDirection } } : { [list.sort]: list.sortDirection }
+  const [courses, totalItems, allApproved, categories] = await prisma.$transaction([
+    prisma.course.findMany({ where, include: { instructor: { select: { name: true } } }, orderBy, skip: list.skip, take: list.take }),
+    prisma.course.count({ where }), prisma.course.count({ where: { status: "approved" } }),
+    prisma.category.findMany({ where: { courses: { some: { status: "approved" } } }, select: { id: true, name: true }, orderBy: { name: "asc" }, take: 100 }),
+  ])
+  const staticMatches = businessTrainingPrograms.filter((program) => !list.search || [program.title, program.shortDescription, ...program.deliveryOptions].join(" ").toLowerCase().includes(list.search.toLowerCase()))
+  const staticPage = staticMatches.slice(list.skip, list.skip + list.take)
+  const pagination = paginationMetadata(list.page, list.pageSize, allApproved === 0 ? staticMatches.length : totalItems)
 
   return (
     <div className="min-h-screen bg-background">
@@ -51,8 +72,14 @@ export default async function CoursesPage() {
                 <Link href="/">Back to Home</Link>
               </Button>
             </div>
+            <form method="get" className="mt-8 grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-[minmax(0,1fr)_220px_200px_auto_auto]">
+              <label><span className="sr-only">Search courses</span><Input name="search" defaultValue={list.search} placeholder="Search title, category, or instructor..." /></label>
+              {allApproved > 0 ? <select name="categoryId" defaultValue={categoryId ?? ""} aria-label="Filter courses by category" className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">All categories</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select> : <input type="hidden" name="categoryId" value="" />}
+              <select name="sort" defaultValue={list.sort} aria-label="Sort courses" className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="title">Title A-Z</option>{allApproved > 0 ? <><option value="createdAt">Newest</option><option value="updatedAt">Recently updated</option><option value="popular">Most enrolled</option></> : null}</select>
+              <input type="hidden" name="pageSize" value={list.pageSize} /><Button type="submit">Search</Button><Button asChild type="button" variant="ghost"><Link href="/courses">Clear</Link></Button>
+            </form>
 
-            {courses.length === 0 ? (
+            {allApproved === 0 ? (
               <div className="mt-8">
                 <section aria-labelledby="corporate-training-heading">
                   <div className="mb-8">
@@ -62,7 +89,7 @@ export default async function CoursesPage() {
                     </p>
                   </div>
                   <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {businessTrainingPrograms.map((program, index) => (
+                    {staticPage.map((program, index) => (
                       <Link key={program.slug} href={`/business-training/${program.slug}`} className="group block">
                         <Card className="h-full shadow-sm transition-all duration-200 group-hover:border-muted-foreground/20 group-hover:shadow-md">
                           <CardHeader className="pb-2">
@@ -96,7 +123,7 @@ export default async function CoursesPage() {
                   </div>
                 </section>
               </div>
-            ) : (
+            ) : courses.length ? (
               <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {courses.map((course) => (
                   <CourseCard
@@ -111,7 +138,8 @@ export default async function CoursesPage() {
                   />
                 ))}
               </div>
-            )}
+            ) : <div className="mt-8 rounded-xl border border-dashed p-10 text-center"><p className="font-medium">No courses found{list.search ? ` for “${list.search}”` : ""}.</p><Button asChild variant="ghost" className="mt-2"><Link href="/courses">Clear filters</Link></Button></div>}
+            <div className="mt-8 overflow-hidden rounded-xl border border-border"><UrlListPagination pagination={pagination} pageSizes={[12, 24, 48]} /></div>
           </div>
         </section>
       </main>

@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Button } from "@/components/ui/button"
+import { ListPagination } from "@/components/shared/list-pagination"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type EnrollmentRow = {
   id: string
@@ -20,21 +24,14 @@ export function AdminEnrollmentsTable() {
   const [rows, setRows] = useState<EnrollmentRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [q, setQ] = useState("")
-  const [courseId, setCourseId] = useState<string>("")
-
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams()
-    if (q.trim()) params.set("q", q.trim())
-    if (courseId) params.set("courseId", courseId)
-    const s = params.toString()
-    return s ? `?${s}` : ""
-  }, [q, courseId])
+  const listState = useListUrlState(10)
+  const courseId = listState.value("courseId")
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
-    const res = await fetch(`/api/admin/enrollments${queryString}`, { cache: "no-store", signal }).catch(() => null)
+    const res = await fetch(`/api/admin/enrollments${listState.queryString}`, { cache: "no-store", signal }).catch(() => null)
     const json = res ? await res.json().catch(() => null) : null
     if (!res || !res.ok) {
       setRows([])
@@ -43,8 +40,9 @@ export function AdminEnrollmentsTable() {
       return
     }
     setRows((json?.enrollments ?? []) as EnrollmentRow[])
+    if (json?.pagination) setPagination(json.pagination)
     setIsLoading(false)
-  }, [queryString])
+  }, [listState.queryString])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -69,14 +67,16 @@ export function AdminEnrollmentsTable() {
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="flex-1">
             <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              value={listState.search}
+              onChange={(e) => listState.setSearch(e.target.value)}
+              aria-label="Search enrollments"
               placeholder="Search student, course, or instructor..."
             />
           </div>
           <select
             value={courseId}
-            onChange={(e) => setCourseId(e.target.value)}
+            onChange={(e) => listState.setValue("courseId", e.target.value)}
+            aria-label="Filter enrollments by course"
             className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
           >
             <option value="">All courses</option>
@@ -86,6 +86,8 @@ export function AdminEnrollmentsTable() {
               </option>
             ))}
           </select>
+          <select value={listState.value("sortDirection") || "desc"} onChange={(e) => listState.setValue("sortDirection", e.target.value)} aria-label="Sort enrollments" className="h-9 rounded-lg border border-input bg-background px-3 text-sm"><option value="desc">Newest</option><option value="asc">Oldest</option></select>
+          <Button type="button" variant="ghost" size="sm" onClick={listState.clear}>Clear</Button>
         </div>
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -171,6 +173,7 @@ export function AdminEnrollmentsTable() {
           </table>
         </div>
       ) : null}
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
     </div>
   )
 }

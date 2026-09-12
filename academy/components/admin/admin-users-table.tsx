@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { FilePenLine, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,9 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { StatusBadge } from "@/components/admin/status-badge"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { toast } from "@/hooks/use-toast"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import { ListPagination } from "@/components/shared/list-pagination"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type AdminUser = {
   id: string
@@ -44,25 +47,18 @@ export function AdminUsersTable({
   const [users, setUsers] = useState<AdminUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [q, setQ] = useState("")
-  const [role, setRole] = useState<string>(fixedRole ?? "")
-  const [status, setStatus] = useState<string>("")
+  const listState = useListUrlState(10)
+  const role = fixedRole ?? listState.value("role")
+  const status = listState.value("status")
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
   const [busyUserId, setBusyUserId] = useState<string | null>(null)
-
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams()
-    const resolvedRole = fixedRole ?? role
-    if (resolvedRole) params.set("role", resolvedRole)
-    if (status) params.set("status", status)
-    if (q.trim()) params.set("q", q.trim())
-    const s = params.toString()
-    return s ? `?${s}` : ""
-  }, [fixedRole, role, status, q])
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
-    const res = await fetch(`/api/admin/users${queryString}`, { cache: "no-store", signal }).catch(() => null)
+    const params = new URLSearchParams(listState.queryString.slice(1))
+    if (fixedRole) params.set("role", fixedRole)
+    const res = await fetch(`/api/admin/users?${params.toString()}`, { cache: "no-store", signal }).catch(() => null)
     const json = res ? await res.json().catch(() => null) : null
     if (!res || !res.ok) {
       setUsers([])
@@ -71,8 +67,9 @@ export function AdminUsersTable({
       return
     }
     setUsers((json?.users ?? []) as AdminUser[])
+    if (json?.pagination) setPagination(json.pagination)
     setIsLoading(false)
-  }, [queryString])
+  }, [fixedRole, listState.queryString])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -159,13 +156,14 @@ export function AdminUsersTable({
 
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           <div className="flex-1">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email..." />
+            <Input value={listState.search} onChange={(e) => listState.setSearch(e.target.value)} aria-label="Search users" placeholder="Search name, email, or organisation..." />
           </div>
           <div className="flex items-center gap-3">
             {!fixedRole ? (
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={(e) => listState.setValue("role", e.target.value)}
+                aria-label="Filter users by role"
                 className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
               >
                 {roleOptions.map((o) => (
@@ -177,7 +175,8 @@ export function AdminUsersTable({
             ) : null}
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => listState.setValue("status", e.target.value)}
+              aria-label="Filter users by status"
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             >
               {statusOptions.map((o) => (
@@ -186,6 +185,8 @@ export function AdminUsersTable({
                 </option>
               ))}
             </select>
+            <select value={listState.value("sort") || "createdAt"} onChange={(e) => listState.setValue("sort", e.target.value)} aria-label="Sort users" className="h-9 rounded-lg border border-input bg-background px-3 text-sm"><option value="createdAt">Newest</option><option value="updatedAt">Recently updated</option><option value="name">Name A-Z</option><option value="email">Email A-Z</option></select>
+            <Button type="button" variant="ghost" size="sm" onClick={listState.clear}>Clear</Button>
           </div>
         </div>
 
@@ -323,6 +324,7 @@ export function AdminUsersTable({
           </table>
         </div>
       ) : null}
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
     </div>
   )
 }

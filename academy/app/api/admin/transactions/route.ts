@@ -2,15 +2,22 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { CurrencyCode } from "@/lib/generated/prisma/enums"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
   if (auth instanceof Response) return auth
 
   const url = new URL(req.url)
+  let list
+  try {
+    list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "createdAt", allowedSorts: ["createdAt", "amount", "reference"] as const })
+  } catch (error) {
+    return listQueryErrorResponse(error)
+  }
   const type = url.searchParams.get("type")
   const status = url.searchParams.get("status")
-  const q = url.searchParams.get("q")?.trim() ?? ""
+  const q = list.search
   const userId = url.searchParams.get("userId")
   const courseId = url.searchParams.get("courseId")
 
@@ -29,16 +36,18 @@ export async function GET(req: Request) {
     ]
   }
 
-  const [transactions, revenueAgg, payoutAgg, commissionAgg] = await Promise.all([
+  const [transactions, totalItems, revenueAgg, payoutAgg, commissionAgg] = await Promise.all([
     prisma.transaction.findMany({
       where,
       include: {
         user: { select: { id: true, name: true, email: true, role: true } },
         course: { select: { id: true, title: true } },
       },
-      orderBy: { createdAt: "desc" },
-      take: 200,
+      orderBy: { [list.sort]: list.sortDirection },
+      skip: list.skip,
+      take: list.take,
     }),
+    prisma.transaction.count({ where }),
     prisma.transaction.aggregate({
       where: { status: "succeeded", currency: CurrencyCode.USD, type: "enrollment" },
       _sum: { amount: true },
@@ -55,7 +64,7 @@ export async function GET(req: Request) {
 
   return Response.json({
     transactions,
-    totals: {
+    pagination: paginationMetadata(list.page, list.pageSize, totalItems), totals: {
       revenueUsd: revenueAgg._sum?.amount ?? 0,
       payoutsUsd: payoutAgg._sum?.amount ?? 0,
       commissionsUsd: commissionAgg._sum?.amount ?? 0,

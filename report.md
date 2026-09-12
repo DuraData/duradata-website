@@ -58,7 +58,32 @@ Production content is installed by `npm run academy:install-free-courses`. It us
 
 Research used only for learning progression, terminology, recommended practices, and source records: [W3Schools](https://www.w3schools.com/), [TutorialsPoint](https://www.tutorialspoint.com/), [MDN Learn](https://developer.mozilla.org/en-US/docs/Learn_web_development), [freeCodeCamp](https://www.freecodecamp.org/learn/), the [official Python tutorial](https://docs.python.org/3/tutorial/), [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/), [React Learn](https://react.dev/learn), [Node.js Learn](https://nodejs.org/en/learn/getting-started/introduction-to-nodejs), [PostgreSQL tutorial](https://www.postgresql.org/docs/current/tutorial.html), [Pro Git](https://git-scm.com/book/en/v2) and GitHub documentation, [Microsoft Learn for C#/.NET](https://learn.microsoft.com/en-us/dotnet/csharp/), and [OWASP API Security](https://owasp.org/www-project-api-security/). All Duradata lesson prose, examples, exercises, quiz questions, explanations, and project briefs were independently written; no external tutorial text or proprietary assessment was copied.
 
-Local verification for this library: Prisma schema validation **passed**; generated Prisma client **passed**; TypeScript **passed**; optimized Next.js build **passed**; targeted ESLint **passed**; unit tests **13/13 passed**, including library structure, exact course names, per-course assessment minimums, exercise/project completeness, and Node.js security constraints. The local MariaDB integration run was unavailable because the isolated MySQL service was stopped; the production build therefore performs both installation and read-back verification against the configured Academy database before publishing.
+Local verification for this library: Prisma schema validation **passed**; generated Prisma client **passed**; TypeScript **passed**; optimized Next.js build **passed**; targeted ESLint **passed**; unit tests **16/16 passed**, including library structure, exact course names, per-course assessment minimums, exercise/project completeness, Node.js security constraints, list-query bounds, whitelisted sorting/filtering, and pagination boundaries. The local MariaDB integration run was unavailable because the isolated MySQL service could not be started by this Windows session; the production build therefore performs both installation and read-back verification against the configured Academy database before publishing.
+
+## Search, filter, sort, and pagination audit
+
+The growing Academy collections now query MySQL on the server with validated `page`, `pageSize`, search, filter, sort field, and sort direction parameters. Table views use 10/25/50/100 row sizes; public catalogues use 12/24/48. Search or filter changes reset the page, URL parameters are the source of truth, counts reflect the complete filtered result, and page controls are accessible and windowed for large page counts. Authentication, role, instructor ownership, learner identity, and organization scope remain mandatory `AND` predicates around user-selected filters.
+
+| Area | Server search and filters | Sorts | Pagination |
+| --- | --- | --- | --- |
+| Free Learning | title, descriptions, category, difficulty; category/difficulty filters | title, published, updated | 12/24/48 |
+| Corporate Courses | title, description, instructor, category; category filter | title, newest, updated, real enrollment count | 12/24/48 |
+| Admin Courses | title, description, moderation note, instructor, category; status/featured/category/instructor | created, updated, title, real enrollment count | 10/25/50/100 |
+| Users and instructors | name, email, organization/expertise; role/status/organization | created, updated, name, email/reviewed | 10/25/50/100 |
+| Organizations | name, slug, member name/email; active status | name, created, updated | 10/25/50/100 |
+| Enrollments and learners | learner name/email and course; course/organization | enrollment date | 10/25/50/100 |
+| Academic subjects | title, description, subject/teacher/category; status/exam body | created, updated, title, price | 10/25/50/100 |
+| Tutorial management | title, descriptions, category; status/difficulty | created, updated, published, title | 10/25/50/100 |
+| Transactions and billing | reference, description, user, course; type/status | date, amount, reference | 10/25/50/100 |
+| Reports | message, reporter, accused user, course; type/status | created/resolved | 10/25/50/100 |
+| Homework | title, description, subject; subject filter | due, created, updated, title | 10/25/50/100 |
+| Notifications | title/body; read state | created | 10/25/50/100 |
+| Certificates | paid/free type | issued date | 10/25/50/100 |
+| Instructor/internal course and learner lists | ownership-scoped text/status/course filters | created/updated/title | 10/25/50/100 |
+
+Small fixed configuration/reference collections (feature settings, achievement definitions, category selectors, and curriculum children within one course) intentionally remain bounded non-paginated controls. The Academy has no dedicated audit-log model or audit-log management screen; security callback/reset records are operational records rather than a user-facing growing collection.
+
+The migration `20260912110000_add_list_query_indexes` adds only indexes justified by production predicates and ordering: user role/status/date; course status/date/category/instructor; organization membership/assignment date; enrollment date by user/course; moderation queues; transaction/report status and type; certificate/notification ownership and date; teacher homework due date; subject status/date; and tutorial type/status/difficulty/title. Leading-wildcard `contains` text queries were not given ordinary B-tree indexes because those indexes do not accelerate that pattern. Numbered offset pagination was selected because these screens require direct page jumps; cursor pagination remains the better future option for very deep feed-style navigation.
 
 ## Verification completed
 

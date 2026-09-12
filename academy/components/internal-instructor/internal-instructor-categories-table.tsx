@@ -22,7 +22,7 @@ export function InternalInstructorCategoriesTable() {
   const load = async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
-    const res = await fetch("/api/admin/categories", { cache: "no-store", signal }).catch(() => null)
+    const res = await fetch("/api/admin/categories?pageSize=100", { cache: "no-store", signal }).catch(() => null)
     const json = res ? await res.json().catch(() => null) : null
     if (!res || !res.ok) {
       setCategories([])

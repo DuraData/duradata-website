@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { FilePenLine, Star, StarOff, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +10,9 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { StatusBadge } from "@/components/admin/status-badge"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { toast } from "@/hooks/use-toast"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import { ListPagination } from "@/components/shared/list-pagination"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type CourseRow = {
   id: string
@@ -32,25 +35,17 @@ export function AdminCoursesTable() {
   const [rows, setRows] = useState<CourseRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [q, setQ] = useState("")
-  const [status, setStatus] = useState<string>("")
-  const [featured, setFeatured] = useState<string>("")
+  const listState = useListUrlState(10)
+  const status = listState.value("status")
+  const featured = listState.value("featured")
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
   const [busyId, setBusyId] = useState<string | null>(null)
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({})
-
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams()
-    if (status) params.set("status", status)
-    if (featured) params.set("featured", featured)
-    if (q.trim()) params.set("q", q.trim())
-    const s = params.toString()
-    return s ? `?${s}` : ""
-  }, [status, featured, q])
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
-    const coursesRes = await fetch(`/api/admin/courses${queryString}`, { cache: "no-store", signal }).catch(() => null)
+    const coursesRes = await fetch(`/api/admin/courses${listState.queryString}`, { cache: "no-store", signal }).catch(() => null)
 
     const coursesJson = coursesRes ? await coursesRes.json().catch(() => null) : null
 
@@ -64,11 +59,12 @@ export function AdminCoursesTable() {
     }
 
     setRows((coursesJson?.courses ?? []) as CourseRow[])
+    if (coursesJson?.pagination) setPagination(coursesJson.pagination)
     setPriceDrafts(
       Object.fromEntries((((coursesJson?.courses ?? []) as CourseRow[]) ?? []).map((course) => [course.id, String(course.price)]))
     )
     setIsLoading(false)
-  }, [queryString])
+  }, [listState.queryString])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -140,12 +136,13 @@ export function AdminCoursesTable() {
 
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="flex-1">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, description, instructor..." />
+            <Input value={listState.search} onChange={(e) => listState.setSearch(e.target.value)} aria-label="Search courses" placeholder="Search title, description, category, instructor..." />
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => listState.setValue("status", e.target.value)}
+              aria-label="Filter courses by status"
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             >
               <option value="">All statuses</option>
@@ -157,13 +154,16 @@ export function AdminCoursesTable() {
             </select>
             <select
               value={featured}
-              onChange={(e) => setFeatured(e.target.value)}
+              onChange={(e) => listState.setValue("featured", e.target.value)}
+              aria-label="Filter featured courses"
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             >
               <option value="">All</option>
               <option value="true">Featured</option>
               <option value="false">Not featured</option>
             </select>
+            <select value={listState.value("sort") || "createdAt"} onChange={(e) => listState.setValue("sort", e.target.value)} aria-label="Sort courses" className="h-9 rounded-lg border border-input bg-background px-3 text-sm"><option value="createdAt">Newest</option><option value="updatedAt">Recently updated</option><option value="title">Title A-Z</option><option value="popular">Most enrolled</option></select>
+            <Button type="button" variant="ghost" size="sm" onClick={listState.clear}>Clear</Button>
           </div>
         </div>
 
@@ -326,6 +326,7 @@ export function AdminCoursesTable() {
           </table>
         </div>
       ) : null}
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
       </div>
     </>
   )

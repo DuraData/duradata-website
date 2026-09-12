@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireInternalInstructor } from "@/lib/rbac"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 const CreateCourseSchema = z.object({
   title: z.string().trim().min(1),
@@ -22,20 +23,28 @@ const CreateCourseSchema = z.object({
     .optional(),
 })
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireInternalInstructor()
   if (auth instanceof Response) return auth
 
-  const courses = await prisma.course.findMany({
-    where: { instructorId: auth.user.id },
+  const url = new URL(req.url)
+  let list
+  try { list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "updatedAt", allowedSorts: ["createdAt", "updatedAt", "title"] as const }) } catch (error) { return listQueryErrorResponse(error) }
+  const status = url.searchParams.get("status")
+  const where: Record<string, unknown> = { instructorId: auth.user.id }
+  if (status) where.status = status
+  if (list.search) where.OR = [{ title: { contains: list.search } }, { description: { contains: list.search } }, { category: { name: { contains: list.search } } }]
+
+  const [courses, totalItems] = await prisma.$transaction([prisma.course.findMany({
+    where,
     include: {
       category: { select: { id: true, name: true } },
       _count: { select: { enrollments: true, sections: true } },
     },
-    orderBy: { updatedAt: "desc" },
-  })
+    orderBy: { [list.sort]: list.sortDirection }, skip: list.skip, take: list.take,
+  }), prisma.course.count({ where })])
 
-  return Response.json({ courses })
+  return Response.json({ courses, pagination: paginationMetadata(list.page, list.pageSize, totalItems) })
 }
 
 export async function POST(req: Request) {

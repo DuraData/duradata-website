@@ -59,7 +59,7 @@ export function InternalInstructorCourseEdit({ courseId }: { courseId: string })
     const load = async () => {
       const [courseRes, categoriesRes] = await Promise.all([
         fetch(`/api/internal-instructor/courses/${courseId}`, { cache: "no-store" }).catch(() => null),
-        fetch("/api/admin/categories", { cache: "no-store" }).catch(() => null),
+        fetch("/api/admin/categories?pageSize=100", { cache: "no-store" }).catch(() => null),
       ])
       if (cancelled) return
 

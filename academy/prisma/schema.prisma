@@ -147,29 +147,29 @@ enum OrganizationMemberRole {
 }
 
 model User {
-  id        String     @id @default(uuid()) @db.Char(36)
-  name      String
-  email     String     @unique
-  passwordHash String?
-  mustChangePassword Boolean @default(false)
-  resetToken String?
+  id                  String     @id @default(uuid()) @db.Char(36)
+  name                String
+  email               String     @unique
+  passwordHash        String?
+  mustChangePassword  Boolean    @default(false)
+  resetToken          String?
   resetTokenExpiresAt DateTime?
-  role      UserRole
-  status    UserStatus @default(active)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @default(now()) @updatedAt
+  role                UserRole
+  status              UserStatus @default(active)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @default(now()) @updatedAt
 
-  courses     Course[]      @relation("InstructorCourses")
-  enrollments Enrollment[]
-  progress    Progress[]
-  favorites   Favorite[]
-  instructorApplication InstructorApplication? @relation("InstructorApplicationUser")
+  courses                        Course[]                @relation("InstructorCourses")
+  enrollments                    Enrollment[]
+  progress                       Progress[]
+  favorites                      Favorite[]
+  instructorApplication          InstructorApplication?  @relation("InstructorApplicationUser")
   reviewedInstructorApplications InstructorApplication[] @relation("InstructorApplicationReviewer")
 
-  transactions   Transaction[] @relation("TransactionUser")
-  reportsMade    Report[]      @relation("ReportReporter")
-  reportsAgainst Report[]      @relation("ReportAccusedUser")
-  reportsResolved Report[]     @relation("ReportResolver")
+  transactions    Transaction[] @relation("TransactionUser")
+  reportsMade     Report[]      @relation("ReportReporter")
+  reportsAgainst  Report[]      @relation("ReportAccusedUser")
+  reportsResolved Report[]      @relation("ReportResolver")
 
   certificates  Certificate[]
   notifications Notification[]
@@ -177,41 +177,44 @@ model User {
   invoices      Invoice[]
   achievements  UserAchievement[]
 
-  liveLessonsTeaching LiveLesson[] @relation("LiveLessonTeacher")
-  homeworkTeaching HomeworkAssignment[] @relation("HomeworkTeacher")
-  homeworkSubmissions HomeworkSubmission[] @relation("HomeworkStudent")
-  announcementsMade Announcement[]
+  liveLessonsTeaching  LiveLesson[]         @relation("LiveLessonTeacher")
+  homeworkTeaching     HomeworkAssignment[] @relation("HomeworkTeacher")
+  homeworkSubmissions  HomeworkSubmission[] @relation("HomeworkStudent")
+  announcementsMade    Announcement[]
   liveLessonAttendance Attendance[]
 
-  subjectPackagesTeaching SubjectPackage[] @relation("SubjectPackageTeacher")
-  subjectEnrollments SubjectEnrollment[]
-  subjectLessonProgress SubjectLessonProgress[]
-  subjectQuizAttempts SubjectQuizAttempt[]
-  passwordResetTokens PasswordResetToken[]
-  passwordResetRequests PasswordResetRequest[]
-  sessions Session[]
-  tutorialsCreated Tutorial[] @relation("TutorialCreator")
-  tutorialsUpdated Tutorial[] @relation("TutorialUpdater")
-  tutorialProgress TutorialProgress[]
-  tutorialBookmarks TutorialBookmark[]
-  tutorialEnrollments TutorialEnrollment[]
-  tutorialQuizAttempts TutorialQuizAttempt[]
-  tutorialCertificates TutorialCertificate[]
-  organizationMemberships OrganizationMember[]
-  organizationsCreated Organization[] @relation("OrganizationCreator")
-  corporateAssignmentsCreated CourseAssignment[] @relation("CourseAssignmentCreator")
+  subjectPackagesTeaching     SubjectPackage[]        @relation("SubjectPackageTeacher")
+  subjectEnrollments          SubjectEnrollment[]
+  subjectLessonProgress       SubjectLessonProgress[]
+  subjectQuizAttempts         SubjectQuizAttempt[]
+  passwordResetTokens         PasswordResetToken[]
+  passwordResetRequests       PasswordResetRequest[]
+  sessions                    Session[]
+  tutorialsCreated            Tutorial[]              @relation("TutorialCreator")
+  tutorialsUpdated            Tutorial[]              @relation("TutorialUpdater")
+  tutorialProgress            TutorialProgress[]
+  tutorialBookmarks           TutorialBookmark[]
+  tutorialEnrollments         TutorialEnrollment[]
+  tutorialQuizAttempts        TutorialQuizAttempt[]
+  tutorialCertificates        TutorialCertificate[]
+  organizationMemberships     OrganizationMember[]
+  organizationsCreated        Organization[]          @relation("OrganizationCreator")
+  corporateAssignmentsCreated CourseAssignment[]      @relation("CourseAssignmentCreator")
+
+  @@index([role, status, createdAt])
+  @@index([status, name])
 }
 
 model Session {
-  id        String    @id @default(uuid()) @db.Char(36)
-  userId    String    @db.Char(36)
-  tokenHash String    @unique
-  createdAt DateTime  @default(now())
-  expiresAt DateTime
-  lastUsedAt DateTime @default(now())
-  revokedAt DateTime?
-  userAgent String?
-  ipHash    String?
+  id         String    @id @default(uuid()) @db.Char(36)
+  userId     String    @db.Char(36)
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  lastUsedAt DateTime  @default(now())
+  revokedAt  DateTime?
+  userAgent  String?
+  ipHash     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -220,13 +223,13 @@ model Session {
 }
 
 model PasswordResetToken {
-  id            String   @id @default(uuid()) @db.Char(36)
-  userId        String   @db.Char(36)
-  tokenHash     String   @unique
+  id            String    @id @default(uuid()) @db.Char(36)
+  userId        String    @db.Char(36)
+  tokenHash     String    @unique
   expiresAt     DateTime
   usedAt        DateTime?
   invalidatedAt DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -249,29 +252,34 @@ model PasswordResetRequest {
 }
 
 model Course {
-  id           String      @id @default(uuid()) @db.Char(36)
-  title        String
-  description  String @db.Text
-  price        Int
-  moderationNote String? @db.Text
-  instructorId String   @db.Char(36)
-  status       CourseStatus @default(draft)
-  featured     Boolean   @default(false)
-  imageUrl     String?
-  categoryId   String?   @db.Char(36)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @default(now()) @updatedAt
+  id             String       @id @default(uuid()) @db.Char(36)
+  title          String
+  description    String       @db.Text
+  price          Int
+  moderationNote String?      @db.Text
+  instructorId   String       @db.Char(36)
+  status         CourseStatus @default(draft)
+  featured       Boolean      @default(false)
+  imageUrl       String?
+  categoryId     String?      @db.Char(36)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
 
-  instructor  User        @relation("InstructorCourses", fields: [instructorId], references: [id])
-  sections    Section[]
-  enrollments Enrollment[]
-  favorites   Favorite[]
-  category    Category?   @relation(fields: [categoryId], references: [id])
-  transactions Transaction[] @relation("TransactionCourse")
-  reports     Report[]
-  certificates Certificate[]
-  liveLessons LiveLesson[] @relation("LiveLessonCourse")
+  instructor           User               @relation("InstructorCourses", fields: [instructorId], references: [id])
+  sections             Section[]
+  enrollments          Enrollment[]
+  favorites            Favorite[]
+  category             Category?          @relation(fields: [categoryId], references: [id])
+  transactions         Transaction[]      @relation("TransactionCourse")
+  reports              Report[]
+  certificates         Certificate[]
+  liveLessons          LiveLesson[]       @relation("LiveLessonCourse")
   corporateAssignments CourseAssignment[]
+
+  @@index([status, createdAt])
+  @@index([status, updatedAt])
+  @@index([categoryId, status, title])
+  @@index([instructorId, status, updatedAt])
 }
 
 model Organization {
@@ -283,7 +291,7 @@ model Organization {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 
-  createdBy   User @relation("OrganizationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy   User                 @relation("OrganizationCreator", fields: [createdById], references: [id], onDelete: Restrict)
   members     OrganizationMember[]
   assignments CourseAssignment[]
 
@@ -302,6 +310,7 @@ model OrganizationMember {
 
   @@unique([organizationId, userId])
   @@index([userId, role])
+  @@index([organizationId, createdAt])
 }
 
 model CourseAssignment {
@@ -319,6 +328,7 @@ model CourseAssignment {
 
   @@unique([organizationId, courseId])
   @@index([courseId, dueAt])
+  @@index([organizationId, createdAt])
 }
 
 model Section {
@@ -343,23 +353,26 @@ model Lesson {
 }
 
 model Enrollment {
-  id       String @id @default(uuid()) @db.Char(36)
-  userId   String @db.Char(36)
-  courseId String @db.Char(36)
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @db.Char(36)
+  courseId  String   @db.Char(36)
   createdAt DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id])
-  course Course @relation(fields: [courseId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  course       Course        @relation(fields: [courseId], references: [id])
   transactions Transaction[] @relation("TransactionEnrollment")
 
   @@unique([userId, courseId])
+  @@index([createdAt])
+  @@index([courseId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model Progress {
-  id        String  @id @default(uuid()) @db.Char(36)
-  userId    String  @db.Char(36)
-  lessonId  String  @db.Char(36)
-  completed Boolean @default(false)
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @db.Char(36)
+  lessonId  String   @db.Char(36)
+  completed Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -370,9 +383,9 @@ model Progress {
 }
 
 model Favorite {
-  id       String @id @default(uuid()) @db.Char(36)
-  userId   String @db.Char(36)
-  courseId String @db.Char(36)
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @db.Char(36)
+  courseId  String   @db.Char(36)
   createdAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id])
@@ -388,63 +401,66 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  courses Course[]
-  liveLessons LiveLesson[]
+  courses         Course[]
+  liveLessons     LiveLesson[]
   subjectPackages SubjectPackage[]
 }
 
 model InstructorApplication {
-  id         String                      @id @default(uuid()) @db.Char(36)
-  userId     String                      @unique @db.Char(36)
-  status     InstructorApplicationStatus @default(pending)
-  createdAt  DateTime                    @default(now())
-  updatedAt  DateTime                    @updatedAt
-  reviewedAt DateTime?
-  reviewerId String?                     @db.Char(36)
-  notes      String? @db.Text
-  phone      String?
-  linkedinUrl String?
-  expertise  String? @db.Text
-  yearsExperience Int?
-  certifications String? @db.Text
-  biography  String? @db.Text
-  sampleCourseProposal String? @db.Text
-  preferredCategorySlugs Json @default("[]")
-  resumeFileName String?
-  resumeFileType String?
-  resumeFileSize Int?
-  resumeData Bytes? @db.LongBlob
+  id                     String                      @id @default(uuid()) @db.Char(36)
+  userId                 String                      @unique @db.Char(36)
+  status                 InstructorApplicationStatus @default(pending)
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  reviewedAt             DateTime?
+  reviewerId             String?                     @db.Char(36)
+  notes                  String?                     @db.Text
+  phone                  String?
+  linkedinUrl            String?
+  expertise              String?                     @db.Text
+  yearsExperience        Int?
+  certifications         String?                     @db.Text
+  biography              String?                     @db.Text
+  sampleCourseProposal   String?                     @db.Text
+  preferredCategorySlugs Json                        @default("[]")
+  resumeFileName         String?
+  resumeFileType         String?
+  resumeFileSize         Int?
+  resumeData             Bytes?                      @db.LongBlob
 
   user     User  @relation("InstructorApplicationUser", fields: [userId], references: [id])
   reviewer User? @relation("InstructorApplicationReviewer", fields: [reviewerId], references: [id])
+
+  @@index([status, createdAt])
 }
 
 model Transaction {
-  id           String            @id @default(uuid()) @db.Char(36)
-  type         TransactionType
-  status       TransactionStatus @default(succeeded)
-  currency     CurrencyCode      @default(USD)
-  amount       Int
-  reference    String?
-  description  String? @db.Text
-  userId       String?           @db.Char(36)
-  courseId     String?           @db.Char(36)
-  enrollmentId String?           @db.Char(36)
-  subjectPackageId String?       @db.Char(36)
-  providerPollUrl String? @db.Text
+  id                String            @id @default(uuid()) @db.Char(36)
+  type              TransactionType
+  status            TransactionStatus @default(succeeded)
+  currency          CurrencyCode      @default(USD)
+  amount            Int
+  reference         String?
+  description       String?           @db.Text
+  userId            String?           @db.Char(36)
+  courseId          String?           @db.Char(36)
+  enrollmentId      String?           @db.Char(36)
+  subjectPackageId  String?           @db.Char(36)
+  providerPollUrl   String?           @db.Text
   providerReference String?
-  verifiedAt DateTime?
-  createdAt    DateTime          @default(now())
+  verifiedAt        DateTime?
+  createdAt         DateTime          @default(now())
 
-  user       User?       @relation("TransactionUser", fields: [userId], references: [id])
-  course     Course?     @relation("TransactionCourse", fields: [courseId], references: [id])
-  enrollment Enrollment? @relation("TransactionEnrollment", fields: [enrollmentId], references: [id])
+  user           User?           @relation("TransactionUser", fields: [userId], references: [id])
+  course         Course?         @relation("TransactionCourse", fields: [courseId], references: [id])
+  enrollment     Enrollment?     @relation("TransactionEnrollment", fields: [enrollmentId], references: [id])
   subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
 
   @@unique([reference])
   @@unique([enrollmentId, type])
   @@index([userId, status, createdAt])
   @@index([subjectPackageId, status])
+  @@index([status, type, createdAt])
 }
 
 model Report {
@@ -454,20 +470,22 @@ model Report {
   reporterId    String       @db.Char(36)
   courseId      String?      @db.Char(36)
   accusedUserId String?      @db.Char(36)
-  message       String @db.Text
+  message       String       @db.Text
   createdAt     DateTime     @default(now())
   resolvedAt    DateTime?
   resolverId    String?      @db.Char(36)
 
-  reporter    User   @relation("ReportReporter", fields: [reporterId], references: [id])
+  reporter    User    @relation("ReportReporter", fields: [reporterId], references: [id])
   course      Course? @relation(fields: [courseId], references: [id])
-  accusedUser User?  @relation("ReportAccusedUser", fields: [accusedUserId], references: [id])
-  resolver    User?  @relation("ReportResolver", fields: [resolverId], references: [id])
+  accusedUser User?   @relation("ReportAccusedUser", fields: [accusedUserId], references: [id])
+  resolver    User?   @relation("ReportResolver", fields: [resolverId], references: [id])
+
+  @@index([status, type, createdAt])
 }
 
 model PlatformSetting {
   key       String   @id
-  value     String @db.Text
+  value     String   @db.Text
   updatedAt DateTime @updatedAt
 }
 
@@ -482,13 +500,14 @@ model Certificate {
   course Course @relation(fields: [courseId], references: [id])
 
   @@unique([userId, courseId])
+  @@index([userId, issuedAt])
 }
 
 model AchievementDefinition {
   id          String   @id @default(uuid()) @db.Char(36)
   code        String   @unique
   name        String
-  description String @db.Text
+  description String   @db.Text
   icon        String?
   createdAt   DateTime @default(now())
 
@@ -508,70 +527,71 @@ model UserAchievement {
 }
 
 model Notification {
-  id        String   @id @default(uuid()) @db.Char(36)
-  userId    String   @db.Char(36)
+  id        String    @id @default(uuid()) @db.Char(36)
+  userId    String    @db.Char(36)
   title     String
-  body      String? @db.Text
-  href      String? @db.Text
+  body      String?   @db.Text
+  href      String?   @db.Text
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId, readAt])
+  @@index([userId, createdAt])
 }
 
 model Subscription {
-  id                  String             @id @default(uuid()) @db.Char(36)
-  userId              String             @unique @db.Char(36)
-  planName            String             @default("Free")
-  status              SubscriptionStatus @default(active)
-  currentPeriodStart  DateTime           @default(now())
-  currentPeriodEnd    DateTime?
-  cancelAtPeriodEnd   Boolean            @default(false)
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @default(now()) @updatedAt
+  id                 String             @id @default(uuid()) @db.Char(36)
+  userId             String             @unique @db.Char(36)
+  planName           String             @default("Free")
+  status             SubscriptionStatus @default(active)
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 }
 
 model Invoice {
-  id        String      @id @default(uuid()) @db.Char(36)
-  userId    String      @db.Char(36)
-  currency  CurrencyCode @default(USD)
+  id        String        @id @default(uuid()) @db.Char(36)
+  userId    String        @db.Char(36)
+  currency  CurrencyCode  @default(USD)
   amount    Int
   status    InvoiceStatus @default(open)
   reference String?
-  issuedAt  DateTime    @default(now())
+  issuedAt  DateTime      @default(now())
   paidAt    DateTime?
 
   user User @relation(fields: [userId], references: [id])
 
-  @@index([userId, issuedAt])
   @@unique([userId, reference])
+  @@index([userId, issuedAt])
 }
 
 model LiveLesson {
-  id              String           @id @default(uuid()) @db.Char(36)
-  title           String
-  subject         String
-  grade           Int?
-  status          LiveLessonStatus @default(upcoming)
-  startsAt        DateTime
-  durationMinutes Int
-  meetingLink     String? @db.Text
-  recordingUrl    String? @db.Text
-  teacherId       String           @db.Char(36)
-  categoryId      String?          @db.Char(36)
-  subjectPackageId String?         @db.Char(36)
-  courseId        String?          @db.Char(36)
-  createdAt       DateTime         @default(now())
+  id               String           @id @default(uuid()) @db.Char(36)
+  title            String
+  subject          String
+  grade            Int?
+  status           LiveLessonStatus @default(upcoming)
+  startsAt         DateTime
+  durationMinutes  Int
+  meetingLink      String?          @db.Text
+  recordingUrl     String?          @db.Text
+  teacherId        String           @db.Char(36)
+  categoryId       String?          @db.Char(36)
+  subjectPackageId String?          @db.Char(36)
+  courseId         String?          @db.Char(36)
+  createdAt        DateTime         @default(now())
 
-  teacher    User      @relation("LiveLessonTeacher", fields: [teacherId], references: [id])
-  category   Category? @relation(fields: [categoryId], references: [id])
+  teacher        User            @relation("LiveLessonTeacher", fields: [teacherId], references: [id])
+  category       Category?       @relation(fields: [categoryId], references: [id])
   subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
-  course     Course?   @relation("LiveLessonCourse", fields: [courseId], references: [id])
-  attendance Attendance[]
+  course         Course?         @relation("LiveLessonCourse", fields: [courseId], references: [id])
+  attendance     Attendance[]
 
   @@index([startsAt])
   @@index([grade, subject])
@@ -590,23 +610,24 @@ model Attendance {
 }
 
 model HomeworkAssignment {
-  id          String   @id @default(uuid()) @db.Char(36)
-  title       String
-  description String? @db.Text
-  subject     String
-  grade       Int
-  dueAt       DateTime
-  teacherId   String   @db.Char(36)
-  subjectPackageId String? @db.Char(36)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id               String   @id @default(uuid()) @db.Char(36)
+  title            String
+  description      String?  @db.Text
+  subject          String
+  grade            Int
+  dueAt            DateTime
+  teacherId        String   @db.Char(36)
+  subjectPackageId String?  @db.Char(36)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
 
-  teacher     User                 @relation("HomeworkTeacher", fields: [teacherId], references: [id])
-  subjectPackage SubjectPackage?   @relation(fields: [subjectPackageId], references: [id])
-  submissions HomeworkSubmission[]
+  teacher        User                 @relation("HomeworkTeacher", fields: [teacherId], references: [id])
+  subjectPackage SubjectPackage?      @relation(fields: [subjectPackageId], references: [id])
+  submissions    HomeworkSubmission[]
 
   @@index([dueAt])
   @@index([grade, subject])
+  @@index([teacherId, dueAt])
 }
 
 model HomeworkSubmission {
@@ -614,9 +635,9 @@ model HomeworkSubmission {
   assignmentId String                   @db.Char(36)
   studentId    String                   @db.Char(36)
   status       HomeworkSubmissionStatus @default(not_submitted)
-  answerText   String? @db.Text
-  fileUrl      String? @db.Text
-  feedback     String? @db.Text
+  answerText   String?                  @db.Text
+  fileUrl      String?                  @db.Text
+  feedback     String?                  @db.Text
   submittedAt  DateTime?
   updatedAt    DateTime                 @default(now()) @updatedAt
 
@@ -627,17 +648,17 @@ model HomeworkSubmission {
 }
 
 model ExamResource {
-  id        String           @id @default(uuid()) @db.Char(36)
-  title     String
-  kind      ExamResourceKind
-  subject   String
-  grade     Int
-  year      Int
-  term      Int?
-  examType  String?
-  fileUrl   String? @db.Text
-  subjectPackageId String? @db.Char(36)
-  createdAt DateTime @default(now())
+  id               String           @id @default(uuid()) @db.Char(36)
+  title            String
+  kind             ExamResourceKind
+  subject          String
+  grade            Int
+  year             Int
+  term             Int?
+  examType         String?
+  fileUrl          String?          @db.Text
+  subjectPackageId String?          @db.Char(36)
+  createdAt        DateTime         @default(now())
 
   subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
 
@@ -645,56 +666,56 @@ model ExamResource {
 }
 
 model LearningResource {
-  id        String       @id @default(uuid()) @db.Char(36)
-  title     String
-  kind      ResourceKind
-  subject   String
-  grade     Int
-  fileUrl   String? @db.Text
-  subjectPackageId String? @db.Char(36)
-  createdAt DateTime @default(now())
+  id               String       @id @default(uuid()) @db.Char(36)
+  title            String
+  kind             ResourceKind
+  subject          String
+  grade            Int
+  fileUrl          String?      @db.Text
+  subjectPackageId String?      @db.Char(36)
+  createdAt        DateTime     @default(now())
 
   subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
 }
 
 model Announcement {
-  id        String   @id @default(uuid()) @db.Char(36)
-  title     String
-  body      String @db.Text
-  grade     Int?
-  subject   String?
-  authorId  String   @db.Char(36)
-  subjectPackageId String? @db.Char(36)
-  createdAt DateTime @default(now())
+  id               String   @id @default(uuid()) @db.Char(36)
+  title            String
+  body             String   @db.Text
+  grade            Int?
+  subject          String?
+  authorId         String   @db.Char(36)
+  subjectPackageId String?  @db.Char(36)
+  createdAt        DateTime @default(now())
 
-  author User @relation(fields: [authorId], references: [id])
+  author         User            @relation(fields: [authorId], references: [id])
   subjectPackage SubjectPackage? @relation(fields: [subjectPackageId], references: [id])
 }
 
 model SubjectPackage {
-  id                 String   @id @default(uuid()) @db.Char(36)
-  title              String
-  description        String @db.Text
-  subject            String
-  grade              Int
-  term               Int?
-  price              Int
-  currency           CurrencyCode @default(USD)
-  billingPeriod      BillingPeriod @default(monthly)
-  isCapsAligned      Boolean @default(true)
-  examiningBody      ExaminingBody @default(zimsec)
-  includesLiveLessons Boolean @default(true)
-  isExamPrep         Boolean @default(false)
-  isHolidayLearning  Boolean @default(false)
-  status             SubjectPackageStatus @default(approved)
-  moderationNote     String? @db.Text
-  teacherId          String? @db.Char(36)
-  categoryId         String? @db.Char(36)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @default(now()) @updatedAt
+  id                  String               @id @default(uuid()) @db.Char(36)
+  title               String
+  description         String               @db.Text
+  subject             String
+  grade               Int
+  term                Int?
+  price               Int
+  currency            CurrencyCode         @default(USD)
+  billingPeriod       BillingPeriod        @default(monthly)
+  isCapsAligned       Boolean              @default(true)
+  examiningBody       ExaminingBody        @default(zimsec)
+  includesLiveLessons Boolean              @default(true)
+  isExamPrep          Boolean              @default(false)
+  isHolidayLearning   Boolean              @default(false)
+  status              SubjectPackageStatus @default(approved)
+  moderationNote      String?              @db.Text
+  teacherId           String?              @db.Char(36)
+  categoryId          String?              @db.Char(36)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now()) @updatedAt
 
-  teacher       User?     @relation("SubjectPackageTeacher", fields: [teacherId], references: [id])
-  category      Category? @relation(fields: [categoryId], references: [id])
+  teacher       User?                @relation("SubjectPackageTeacher", fields: [teacherId], references: [id])
+  category      Category?            @relation(fields: [categoryId], references: [id])
   enrollments   SubjectEnrollment[]
   liveLessons   LiveLesson[]
   homework      HomeworkAssignment[]
@@ -706,6 +727,7 @@ model SubjectPackage {
 
   @@index([grade, subject])
   @@index([term])
+  @@index([status, updatedAt])
 }
 
 model SubjectSection {
@@ -714,7 +736,7 @@ model SubjectSection {
   subjectPackageId String @db.Char(36)
   order            Int    @default(0)
 
-  subjectPackage SubjectPackage   @relation(fields: [subjectPackageId], references: [id])
+  subjectPackage SubjectPackage  @relation(fields: [subjectPackageId], references: [id])
   lessons        SubjectLesson[]
 }
 
@@ -766,23 +788,23 @@ model SubjectQuizQuestion {
   id            String                  @id @default(uuid()) @db.Char(36)
   quizId        String                  @db.Char(36)
   type          SubjectQuizQuestionType
-  prompt        String @db.Text
+  prompt        String                  @db.Text
   order         Int                     @default(0)
   options       Json?
   correctOption Int?
 
-  quiz    SubjectQuiz          @relation(fields: [quizId], references: [id])
+  quiz    SubjectQuiz         @relation(fields: [quizId], references: [id])
   answers SubjectQuizAnswer[]
 }
 
 model SubjectQuizAttempt {
-  id           String    @id @default(uuid()) @db.Char(36)
-  quizId       String    @db.Char(36)
-  studentId    String    @db.Char(36)
-  score        Int?
-  submittedAt  DateTime?
-  gradedAt     DateTime?
-  createdAt    DateTime  @default(now())
+  id          String    @id @default(uuid()) @db.Char(36)
+  quizId      String    @db.Char(36)
+  studentId   String    @db.Char(36)
+  score       Int?
+  submittedAt DateTime?
+  gradedAt    DateTime?
+  createdAt   DateTime  @default(now())
 
   quiz    SubjectQuiz         @relation(fields: [quizId], references: [id])
   student User                @relation(fields: [studentId], references: [id])
@@ -792,13 +814,13 @@ model SubjectQuizAttempt {
 }
 
 model SubjectQuizAnswer {
-  id               String  @id @default(uuid()) @db.Char(36)
-  attemptId        String  @db.Char(36)
-  questionId       String  @db.Char(36)
+  id               String   @id @default(uuid()) @db.Char(36)
+  attemptId        String   @db.Char(36)
+  questionId       String   @db.Char(36)
   selectedOption   Int?
-  textAnswer       String? @db.Text
+  textAnswer       String?  @db.Text
   isCorrect        Boolean?
-  reviewerFeedback String? @db.Text
+  reviewerFeedback String?  @db.Text
 
   attempt  SubjectQuizAttempt  @relation(fields: [attemptId], references: [id])
   question SubjectQuizQuestion @relation(fields: [questionId], references: [id])
@@ -807,18 +829,18 @@ model SubjectQuizAnswer {
 }
 
 model SubjectEnrollment {
-  id              String                 @id @default(uuid()) @db.Char(36)
-  userId          String                 @db.Char(36)
-  subjectPackageId String                @db.Char(36)
-  status          SubjectEnrollmentStatus @default(pending)
-  grade           Int
-  price           Int
-  currency        CurrencyCode @default(USD)
-  billingPeriod   BillingPeriod @default(monthly)
-  startDate       DateTime?
-  endDate         DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now()) @updatedAt
+  id               String                  @id @default(uuid()) @db.Char(36)
+  userId           String                  @db.Char(36)
+  subjectPackageId String                  @db.Char(36)
+  status           SubjectEnrollmentStatus @default(pending)
+  grade            Int
+  price            Int
+  currency         CurrencyCode            @default(USD)
+  billingPeriod    BillingPeriod           @default(monthly)
+  startDate        DateTime?
+  endDate          DateTime?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @default(now()) @updatedAt
 
   user           User           @relation(fields: [userId], references: [id])
   subjectPackage SubjectPackage @relation(fields: [subjectPackageId], references: [id])
@@ -838,21 +860,21 @@ model RateLimitEvent {
 }
 
 model Tutorial {
-  id                String             @id @default(uuid()) @db.Char(36)
-  slug              String             @unique
-  title             String
-  shortDescription  String @db.Text
-  description       String @db.Text
-  icon              String?
-  imageUrl          String?
-  difficulty        TutorialDifficulty @default(beginner)
-  estimatedDuration Int
-  status            TutorialStatus     @default(draft)
-  publishedAt       DateTime?
-  createdById       String?            @db.Char(36)
-  updatedById       String?            @db.Char(36)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @default(now()) @updatedAt
+  id                 String             @id @default(uuid()) @db.Char(36)
+  slug               String             @unique
+  title              String
+  shortDescription   String             @db.Text
+  description        String             @db.Text
+  icon               String?
+  imageUrl           String?
+  difficulty         TutorialDifficulty @default(beginner)
+  estimatedDuration  Int
+  status             TutorialStatus     @default(draft)
+  publishedAt        DateTime?
+  createdById        String?            @db.Char(36)
+  updatedById        String?            @db.Char(36)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @default(now()) @updatedAt
   learningObjectives Json?
   targetAudience     String?            @db.Text
   prerequisites      String?            @db.Text
@@ -866,26 +888,28 @@ model Tutorial {
   managedKey         String?            @unique
   managedVersion     Int?
 
-  createdBy User? @relation("TutorialCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy User? @relation("TutorialUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
-  sections TutorialSection[]
-  progress TutorialProgress[]
-  bookmarks TutorialBookmark[]
-  enrollments TutorialEnrollment[]
+  createdBy    User?                 @relation("TutorialCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    User?                 @relation("TutorialUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  sections     TutorialSection[]
+  progress     TutorialProgress[]
+  bookmarks    TutorialBookmark[]
+  enrollments  TutorialEnrollment[]
   certificates TutorialCertificate[]
 
   @@index([status, publishedAt])
+  @@index([courseType, status, title])
+  @@index([status, difficulty, title])
 }
 
 model TutorialSection {
-  id          String @id @default(uuid()) @db.Char(36)
-  tutorialId  String @db.Char(36)
+  id          String  @id @default(uuid()) @db.Char(36)
+  tutorialId  String  @db.Char(36)
   title       String
   slug        String
   description String? @db.Text
-  order       Int    @default(0)
+  order       Int     @default(0)
 
-  tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  tutorial Tutorial         @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
   lessons  TutorialLesson[]
 
   @@unique([tutorialId, slug])
@@ -897,7 +921,7 @@ model TutorialLesson {
   sectionId        String   @db.Char(36)
   title            String
   slug             String
-  summary          String @db.Text
+  summary          String   @db.Text
   content          Json
   order            Int      @default(0)
   estimatedMinutes Int      @default(10)
@@ -905,12 +929,12 @@ model TutorialLesson {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now()) @updatedAt
 
-  section TutorialSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section      TutorialSection       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   codeExamples TutorialCodeExample[]
-  exercises TutorialExercise[]
-  quiz TutorialQuiz?
-  progress TutorialProgress[]
-  bookmarks TutorialBookmark[]
+  exercises    TutorialExercise[]
+  quiz         TutorialQuiz?
+  progress     TutorialProgress[]
+  bookmarks    TutorialBookmark[]
 
   @@unique([sectionId, slug])
   @@index([sectionId, order])
@@ -918,30 +942,32 @@ model TutorialLesson {
 }
 
 model TutorialCodeExample {
-  id             String @id @default(uuid()) @db.Char(36)
-  lessonId       String @db.Char(36)
+  id             String  @id @default(uuid()) @db.Char(36)
+  lessonId       String  @db.Char(36)
   title          String
   language       String
-  sourceCode     String @db.LongText
+  sourceCode     String  @db.LongText
   expectedOutput String? @db.Text
   explanation    String? @db.Text
-  order          Int    @default(0)
+  order          Int     @default(0)
 
   lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
   @@index([lessonId, order])
 }
 
 model TutorialExercise {
-  id             String @id @default(uuid()) @db.Char(36)
-  lessonId       String @db.Char(36)
+  id             String  @id @default(uuid()) @db.Char(36)
+  lessonId       String  @db.Char(36)
   title          String
-  instructions   String @db.Text
+  instructions   String  @db.Text
   starterCode    String? @db.LongText
   expectedAnswer String? @db.Text
   explanation    String? @db.Text
-  order          Int    @default(0)
+  order          Int     @default(0)
 
   lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
   @@index([lessonId, order])
 }
 
@@ -950,45 +976,47 @@ model TutorialQuiz {
   lessonId String @unique @db.Char(36)
   title    String
 
-  lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson    TutorialLesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   questions TutorialQuizQuestion[]
-  attempts TutorialQuizAttempt[]
+  attempts  TutorialQuizAttempt[]
 }
 
 model TutorialQuizQuestion {
-  id       String @id @default(uuid()) @db.Char(36)
-  quizId   String @db.Char(36)
-  prompt   String @db.Text
-  order    Int    @default(0)
+  id          String  @id @default(uuid()) @db.Char(36)
+  quizId      String  @db.Char(36)
+  prompt      String  @db.Text
+  order       Int     @default(0)
   explanation String? @db.Text
 
-  quiz TutorialQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quiz    TutorialQuiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   options TutorialQuizOption[]
+
   @@index([quizId, order])
 }
 
 model TutorialQuizOption {
   id         String  @id @default(uuid()) @db.Char(36)
   questionId String  @db.Char(36)
-  text       String @db.Text
+  text       String  @db.Text
   isCorrect  Boolean @default(false)
   order      Int     @default(0)
 
   question TutorialQuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
   @@index([questionId, order])
 }
 
 model TutorialProgress {
-  id           String   @id @default(uuid()) @db.Char(36)
-  userId       String   @db.Char(36)
-  tutorialId   String   @db.Char(36)
-  lessonId     String   @db.Char(36)
+  id           String    @id @default(uuid()) @db.Char(36)
+  userId       String    @db.Char(36)
+  tutorialId   String    @db.Char(36)
+  lessonId     String    @db.Char(36)
   completedAt  DateTime?
-  lastViewedAt DateTime @default(now())
+  lastViewedAt DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
-  lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tutorial Tutorial       @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  lesson   TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
   @@index([userId, tutorialId, lastViewedAt])
@@ -1001,9 +1029,9 @@ model TutorialBookmark {
   lessonId   String   @db.Char(36)
   createdAt  DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
-  lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tutorial Tutorial       @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  lesson   TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
   @@index([userId, tutorialId])
@@ -1033,7 +1061,7 @@ model TutorialQuizAttempt {
   passed    Boolean
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   quiz TutorialQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@index([userId, quizId, createdAt])
@@ -1050,4 +1078,5 @@ model TutorialCertificate {
   tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tutorialId])
+  @@index([userId, issuedAt])
 }

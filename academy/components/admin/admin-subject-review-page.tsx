@@ -98,8 +98,8 @@ export function AdminSubjectReviewPage({ subjectId }: { subjectId: string }) {
 
       const [subjectRes, categoriesRes, pendingRes] = await Promise.all([
         fetch(`/api/admin/subjects/${subjectId}`, { cache: "no-store" }).catch(() => null),
-        fetch("/api/admin/categories", { cache: "no-store" }).catch(() => null),
-        fetch("/api/admin/subjects?status=pending", { cache: "no-store" }).catch(() => null),
+        fetch("/api/admin/categories?pageSize=100", { cache: "no-store" }).catch(() => null),
+        fetch("/api/admin/subjects?status=pending&pageSize=100", { cache: "no-store" }).catch(() => null),
       ])
 
       const subjectJson = subjectRes ? await subjectRes.json().catch(() => null) : null

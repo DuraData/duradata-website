@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/admin/status-badge"
 import { toast } from "@/hooks/use-toast"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import { ListPagination } from "@/components/shared/list-pagination"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type TxUser = { id: string; name: string; email: string; role: string } | null
 type TxCourse = { id: string; title: string } | null
@@ -43,9 +46,10 @@ export function AdminTransactionsTable() {
   const [instructors, setInstructors] = useState<InstructorOption[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [q, setQ] = useState("")
-  const [type, setType] = useState<string>("")
-  const [status, setStatus] = useState<string>("")
+  const listState = useListUrlState(10)
+  const type = listState.value("type")
+  const status = listState.value("status")
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [newType, setNewType] = useState<TransactionRow["type"]>("payout")
@@ -56,21 +60,12 @@ export function AdminTransactionsTable() {
   const [newDescription, setNewDescription] = useState<string>("")
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams()
-    if (type) params.set("type", type)
-    if (status) params.set("status", status)
-    if (q.trim()) params.set("q", q.trim())
-    const s = params.toString()
-    return s ? `?${s}` : ""
-  }, [type, status, q])
-
   const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
     const [txRes, instructorRes] = await Promise.all([
-      fetch(`/api/admin/transactions${queryString}`, { cache: "no-store", signal }).catch(() => null),
-      fetch(`/api/admin/instructors`, { cache: "no-store", signal }).catch(() => null),
+      fetch(`/api/admin/transactions${listState.queryString}`, { cache: "no-store", signal }).catch(() => null),
+      fetch(`/api/admin/instructors?pageSize=100`, { cache: "no-store", signal }).catch(() => null),
     ])
 
     const txJson = txRes ? await txRes.json().catch(() => null) : null
@@ -84,6 +79,7 @@ export function AdminTransactionsTable() {
     }
 
     setRows((txJson?.transactions ?? []) as TransactionRow[])
+    if (txJson?.pagination) setPagination(txJson.pagination)
     setTotals(
       (txJson?.totals as { revenueUsd: number; payoutsUsd: number; commissionsUsd: number }) ?? {
         revenueUsd: 0,
@@ -99,7 +95,7 @@ export function AdminTransactionsTable() {
       }))
     )
     setIsLoading(false)
-  }, [queryString])
+  }, [listState.queryString])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -230,12 +226,13 @@ export function AdminTransactionsTable() {
 
           <div className="flex flex-col lg:flex-row lg:items-center gap-3">
             <div className="flex-1">
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search reference, user, course..." />
+              <Input value={listState.search} onChange={(e) => listState.setSearch(e.target.value)} aria-label="Search transactions" placeholder="Search reference, user, course..." />
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <select
                 value={type}
-                onChange={(e) => setType(e.target.value)}
+                onChange={(e) => listState.setValue("type", e.target.value)}
+                aria-label="Filter transactions by type"
                 className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
               >
                 <option value="">All types</option>
@@ -247,7 +244,8 @@ export function AdminTransactionsTable() {
               </select>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={(e) => listState.setValue("status", e.target.value)}
+                aria-label="Filter transactions by status"
                 className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
               >
                 <option value="">All statuses</option>
@@ -256,6 +254,8 @@ export function AdminTransactionsTable() {
                 <option value="failed">Failed</option>
                 <option value="reversed">Reversed</option>
               </select>
+              <select value={listState.value("sort") || "createdAt"} onChange={(e) => listState.setValue("sort", e.target.value)} aria-label="Sort transactions" className="h-9 rounded-lg border border-input bg-background px-3 text-sm"><option value="createdAt">Newest</option><option value="amount">Amount</option><option value="reference">Reference</option></select>
+              <Button type="button" variant="ghost" size="sm" onClick={listState.clear}>Clear</Button>
             </div>
           </div>
 
@@ -363,6 +363,7 @@ export function AdminTransactionsTable() {
             </table>
           </div>
         ) : null}
+        <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>

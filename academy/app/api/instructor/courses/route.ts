@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/auth"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 const CreateCourseSchema = z.object({
   title: z.string().min(1),
@@ -23,7 +24,7 @@ const CreateCourseSchema = z.object({
     .optional(),
 })
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getSession()
   if (!session) return Response.json({ error: "Not logged in" }, { status: 401 })
   if (session.role !== "instructor") return Response.json({ error: "Forbidden" }, { status: 403 })
@@ -32,14 +33,21 @@ export async function GET() {
   if (!instructor || instructor.role !== "instructor") {
     return Response.json({ error: "Invalid session" }, { status: 401 })
   }
+  const url = new URL(req.url)
+  let list
+  try { list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "updatedAt", allowedSorts: ["createdAt", "updatedAt", "title"] as const }) } catch (error) { return listQueryErrorResponse(error) }
+  const status = url.searchParams.get("status")
+  const where: Record<string, unknown> = { instructorId: instructor.id }
+  if (status && ["draft", "pending", "approved", "rejected", "suspended"].includes(status)) where.status = status
+  if (list.search) where.OR = [{ title: { contains: list.search } }, { description: { contains: list.search } }, { category: { name: { contains: list.search } } }]
 
-  const courses = await prisma.course.findMany({
-    where: { instructorId: instructor.id },
+  const [courses, totalItems] = await prisma.$transaction([prisma.course.findMany({
+    where,
     include: {
       _count: { select: { enrollments: true, sections: true } },
     },
-    orderBy: { updatedAt: "desc" },
-  })
+    orderBy: { [list.sort]: list.sortDirection }, skip: list.skip, take: list.take,
+  }), prisma.course.count({ where })])
 
   const payoutTotals = await prisma.transaction.groupBy({
     by: ["courseId"],
@@ -62,6 +70,7 @@ export async function GET() {
   }
 
   return Response.json({
+    pagination: paginationMetadata(list.page, list.pageSize, totalItems),
     courses: courses.map((c) => ({
       id: c.id,
       title: c.title,

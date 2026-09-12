@@ -7,22 +7,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+import { UrlListPagination } from "@/components/shared/list-pagination"
+import { paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 export const dynamic = "force-dynamic"
 
 const formatUsd = (amount: number) =>
   new Intl.NumberFormat("en-ZW", { style: "currency", currency: "USD" }).format(amount)
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const auth = await requireRoleForPage("student")
   if (!auth) redirect("/")
 
-  const subscription = await prisma.subscription.findUnique({ where: { userId: auth.user.id } })
-  const invoices = await prisma.invoice.findMany({
-    where: { userId: auth.user.id },
-    orderBy: { issuedAt: "desc" },
-    take: 50,
-  })
+  const raw = await searchParams; const params = new URLSearchParams(); for (const [key, value] of Object.entries(raw)) if (typeof value === "string") params.set(key, value)
+  const list = parseListQuery(params, { defaultPageSize: 10, defaultSort: "issuedAt", allowedSorts: ["issuedAt", "amount", "reference"] as const })
+  const statusFilter = params.get("status")
+  const where: Record<string, unknown> = { userId: auth.user.id }
+  if (statusFilter && ["open", "paid", "void"].includes(statusFilter)) where.status = statusFilter
+  if (list.search) where.reference = { contains: list.search }
+  const [subscription, invoices, totalItems] = await prisma.$transaction([
+    prisma.subscription.findUnique({ where: { userId: auth.user.id } }),
+    prisma.invoice.findMany({ where, orderBy: { [list.sort]: list.sortDirection }, skip: list.skip, take: list.take }),
+    prisma.invoice.count({ where }),
+  ])
+  const pagination = paginationMetadata(list.page, list.pageSize, totalItems)
 
   const planName = subscription?.planName ?? "Free"
   const status = subscription?.status ?? "active"
@@ -89,6 +98,7 @@ export default async function BillingPage() {
                 <CardTitle>Invoice history</CardTitle>
               </CardHeader>
               <CardContent>
+                <form method="get" className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px_160px_auto]"><Input aria-label="Search invoices" name="search" defaultValue={list.search} placeholder="Search reference..." /><select aria-label="Filter invoices by status" name="status" defaultValue={statusFilter ?? ""} className="h-10 rounded-md border bg-background px-3"><option value="">All statuses</option><option value="open">Open</option><option value="paid">Paid</option><option value="void">Void</option></select><select aria-label="Sort invoices" name="sort" defaultValue={list.sort} className="h-10 rounded-md border bg-background px-3"><option value="issuedAt">Newest</option><option value="amount">Amount</option><option value="reference">Reference</option></select><Button type="submit">Search</Button></form>
                 {invoices.length === 0 ? (
                   <div className="rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">No invoices yet.</p>
@@ -123,6 +133,7 @@ export default async function BillingPage() {
                     </TableBody>
                   </Table>
                 )}
+                <div className="mt-4 overflow-hidden rounded-lg border"><UrlListPagination pagination={pagination} /></div>
               </CardContent>
             </Card>
           </div>

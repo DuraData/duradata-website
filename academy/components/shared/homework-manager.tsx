@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Plus, ClipboardList, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { toast } from "@/hooks/use-toast"
+import { UrlListPagination } from "@/components/shared/list-pagination"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type AssignmentRow = {
   id: string
@@ -55,6 +58,7 @@ export function HomeworkManager({
 }) {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([])
   const [subjects, setSubjects] = useState<SubjectOption[]>([])
+  const [pagination, setPagination] = useState<PaginationMetadata | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
 
@@ -74,28 +78,30 @@ export function HomeworkManager({
   const [submissionsLoading, setSubmissionsLoading] = useState(false)
   const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, string>>({})
   const [gradingId, setGradingId] = useState<string | null>(null)
+  const listState = useListUrlState()
 
-  const load = async (signal?: AbortSignal) => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
+    const assignmentQuery = listState.queryString
+    const subjectQuery = new URLSearchParams({ pageSize: "100" }).toString()
     const [assignmentsRes, subjectsRes] = await Promise.all([
-      fetch(homeworkApiBasePath, { cache: "no-store", signal }).catch(() => null),
-      fetch(subjectsApiBasePath, { cache: "no-store", signal }).catch(() => null),
+      fetch(`${homeworkApiBasePath}${assignmentQuery}`, { cache: "no-store", signal }).catch(() => null),
+      fetch(`${subjectsApiBasePath}?${subjectQuery}`, { cache: "no-store", signal }).catch(() => null),
     ])
     const assignmentsJson = assignmentsRes ? await assignmentsRes.json().catch(() => null) : null
     const subjectsJson = subjectsRes ? await subjectsRes.json().catch(() => null) : null
 
     setAssignments((assignmentsJson?.assignments ?? []) as AssignmentRow[])
+    setPagination((assignmentsJson?.pagination ?? null) as PaginationMetadata | null)
     setSubjects(((subjectsJson?.subjects ?? []) as Array<{ id: string; title: string }>).map((s) => ({ id: s.id, title: s.title })))
     setIsLoading(false)
-  }
+  }, [homeworkApiBasePath, listState.queryString, subjectsApiBasePath])
 
   useEffect(() => {
     const controller = new AbortController()
     void load(controller.signal)
     return () => controller.abort()
-    // base paths are static per page
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [load])
 
   const openCreate = () => {
     setEditingId(null)
@@ -231,6 +237,31 @@ export function HomeworkManager({
         </Button>
       </div>
 
+      <div className="grid gap-3 border-b border-border p-5 sm:grid-cols-[minmax(0,1fr)_220px_180px_auto]">
+        <Input
+          aria-label="Search homework"
+          placeholder="Search title or description"
+          value={listState.search}
+          onChange={(event) => listState.setSearch(event.target.value)}
+        />
+        <Select value={listState.value("subjectPackageId") || "all"} onValueChange={(value) => listState.setValue("subjectPackageId", value === "all" ? "" : value)}>
+          <SelectTrigger aria-label="Filter by subject"><SelectValue placeholder="All subjects" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All subjects</SelectItem>
+            {subjects.map((subject) => <SelectItem key={subject.id} value={subject.id}>{subject.title}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={listState.value("sort") || "dueAt"} onValueChange={(value) => listState.setValue("sort", value)}>
+          <SelectTrigger aria-label="Sort homework"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="dueAt">Due date</SelectItem>
+            <SelectItem value="createdAt">Newest</SelectItem>
+            <SelectItem value="title">Title</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" onClick={listState.clear}>Reset</Button>
+      </div>
+
       {subjects.length === 0 && !isLoading ? (
         <div className="p-5 border-b border-border">
           <p className="text-sm text-muted-foreground">Create a subject first — homework must be linked to one.</p>
@@ -327,6 +358,8 @@ export function HomeworkManager({
           </table>
         </div>
       ) : null}
+
+      {pagination ? <UrlListPagination pagination={pagination} /> : null}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

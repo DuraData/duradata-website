@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin, requireAdminOrInternalInstructor } from "@/lib/rbac"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 const slugify = (input: string) =>
   input
@@ -9,16 +10,24 @@ const slugify = (input: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAdminOrInternalInstructor()
   if (auth instanceof Response) return auth
 
-  const categories = await prisma.category.findMany({
-    include: { _count: { select: { courses: true } } },
-    orderBy: { name: "asc" },
-  })
+  const url = new URL(req.url)
+  let list
+  try {
+    list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "name", allowedSorts: ["name", "createdAt", "updatedAt"] as const, defaultSortDirection: "asc" })
+  } catch (error) {
+    return listQueryErrorResponse(error)
+  }
+  const where = list.search ? { OR: [{ name: { contains: list.search } }, { slug: { contains: list.search } }] } : {}
+  const [categories, totalItems] = await prisma.$transaction([
+    prisma.category.findMany({ where, include: { _count: { select: { courses: true } } }, orderBy: { [list.sort]: list.sortDirection }, skip: list.skip, take: list.take }),
+    prisma.category.count({ where }),
+  ])
 
-  return Response.json({ categories })
+  return Response.json({ categories, pagination: paginationMetadata(list.page, list.pageSize, totalItems) })
 }
 
 const CreateSchema = z.object({

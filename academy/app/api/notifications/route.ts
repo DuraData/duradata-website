@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/auth"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 async function ensureStudent() {
   const session = await getSession()
@@ -17,17 +18,24 @@ async function ensureStudent() {
   return { user }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await ensureStudent()
   if ("error" in auth) return auth.error
 
-  const notifications = await prisma.notification.findMany({
-    where: { userId: auth.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
+  const url = new URL(req.url)
+  let list
+  try { list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "createdAt", allowedSorts: ["createdAt"] as const }) } catch (error) { return listQueryErrorResponse(error) }
+  const read = url.searchParams.get("read")
+  const where: Record<string, unknown> = { userId: auth.user.id }
+  if (read === "unread") where.readAt = null
+  if (read === "read") where.readAt = { not: null }
+  if (list.search) where.OR = [{ title: { contains: list.search } }, { body: { contains: list.search } }]
+  const [notifications, totalItems] = await prisma.$transaction([
+    prisma.notification.findMany({ where, orderBy: { createdAt: list.sortDirection }, skip: list.skip, take: list.take }),
+    prisma.notification.count({ where }),
+  ])
 
-  return Response.json({ notifications })
+  return Response.json({ notifications, pagination: paginationMetadata(list.page, list.pageSize, totalItems) })
 }
 
 const PatchSchema = z.object({

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -8,6 +8,9 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { StatusBadge } from "@/components/admin/status-badge"
 import { toast } from "@/hooks/use-toast"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import { ListPagination } from "@/components/shared/list-pagination"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type ApplicationRow = {
   id: string
@@ -31,8 +34,9 @@ export function AdminInstructorApplicationsTable() {
   const [rows, setRows] = useState<ApplicationRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [status, setStatus] = useState<string>("pending")
-  const [q, setQ] = useState("")
+  const listState = useListUrlState(10)
+  const status = listState.value("status") || "pending"
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -42,17 +46,11 @@ export function AdminInstructorApplicationsTable() {
   const [viewOpen, setViewOpen] = useState(false)
   const [viewRow, setViewRow] = useState<ApplicationRow | null>(null)
 
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams()
-    if (status) params.set("status", status)
-    const s = params.toString()
-    return s ? `?${s}` : ""
-  }, [status])
-
   const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
-    const res = await fetch(`/api/admin/instructor-applications${queryString}`, { cache: "no-store", signal }).catch(
+    const params = new URLSearchParams(listState.queryString.slice(1)); if (!params.has("status")) params.set("status", "pending")
+    const res = await fetch(`/api/admin/instructor-applications?${params.toString()}`, { cache: "no-store", signal }).catch(
       () => null
     )
     const json = res ? await res.json().catch(() => null) : null
@@ -63,20 +61,15 @@ export function AdminInstructorApplicationsTable() {
       return
     }
     setRows((json?.applications ?? []) as ApplicationRow[])
+    if (json?.pagination) setPagination(json.pagination)
     setIsLoading(false)
-  }, [queryString])
+  }, [listState.queryString])
 
   useEffect(() => {
     const controller = new AbortController()
     void load(controller.signal)
     return () => controller.abort()
   }, [load])
-
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase()
-    if (!term) return rows
-    return rows.filter((r) => r.user.email.toLowerCase().includes(term) || r.user.name.toLowerCase().includes(term))
-  }, [rows, q])
 
   const openDialog = (applicationId: string, action: "approve" | "reject") => {
     setDialogAppId(applicationId)
@@ -125,11 +118,12 @@ export function AdminInstructorApplicationsTable() {
 
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           <div className="flex-1">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email..." />
+            <Input value={listState.search} onChange={(e) => listState.setSearch(e.target.value)} aria-label="Search instructor applications" placeholder="Search name, email, or expertise..." />
           </div>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => listState.setValue("status", e.target.value)}
+            aria-label="Filter instructor applications by status"
             className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
           >
             <option value="">All</option>
@@ -137,6 +131,8 @@ export function AdminInstructorApplicationsTable() {
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
           </select>
+          <select value={listState.value("sortDirection") || "desc"} onChange={(e) => listState.setValue("sortDirection", e.target.value)} aria-label="Sort instructor applications" className="h-9 rounded-lg border border-input bg-background px-3 text-sm"><option value="desc">Newest</option><option value="asc">Oldest</option></select>
+          <Button type="button" variant="ghost" size="sm" onClick={listState.clear}>Clear</Button>
         </div>
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -148,7 +144,7 @@ export function AdminInstructorApplicationsTable() {
         </div>
       ) : null}
 
-      {!isLoading && filtered.length === 0 ? (
+      {!isLoading && rows.length === 0 ? (
         <div className="p-6">
           <Empty className="border border-dashed">
             <EmptyHeader>
@@ -161,7 +157,7 @@ export function AdminInstructorApplicationsTable() {
         </div>
       ) : null}
 
-      {filtered.length ? (
+      {rows.length ? (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -178,7 +174,7 @@ export function AdminInstructorApplicationsTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((r) => {
+              {rows.map((r) => {
                 const busy = busyId === r.id
                 const canAct = r.status === "pending" && r.user.status === "active"
                 return (
@@ -222,6 +218,7 @@ export function AdminInstructorApplicationsTable() {
           </table>
         </div>
       ) : null}
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
 
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="max-w-2xl">

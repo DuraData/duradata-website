@@ -99,8 +99,8 @@ export function AdminCourseReviewPage({ courseId }: { courseId: string }) {
 
       const [courseRes, categoriesRes, pendingRes] = await Promise.all([
         fetch(`/api/admin/courses/${courseId}`, { cache: "no-store" }).catch(() => null),
-        fetch("/api/admin/categories", { cache: "no-store" }).catch(() => null),
-        fetch("/api/admin/courses?status=pending", { cache: "no-store" }).catch(() => null),
+        fetch("/api/admin/categories?pageSize=100", { cache: "no-store" }).catch(() => null),
+        fetch("/api/admin/courses?status=pending&pageSize=100", { cache: "no-store" }).catch(() => null),
       ])
 
       const courseJson = courseRes ? await courseRes.json().catch(() => null) : null

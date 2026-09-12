@@ -1,13 +1,20 @@
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
   if (auth instanceof Response) return auth
 
   const url = new URL(req.url)
+  let list
+  try {
+    list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "createdAt", allowedSorts: ["createdAt", "updatedAt", "name", "email"] as const })
+  } catch (error) {
+    return listQueryErrorResponse(error)
+  }
   const status = url.searchParams.get("status")
-  const q = url.searchParams.get("q")?.trim() ?? ""
+  const q = list.search
 
   const where: Record<string, unknown> = { role: "instructor" }
   if (status && ["active", "suspended", "banned"].includes(status)) where.status = status
@@ -18,9 +25,8 @@ export async function GET(req: Request) {
     ]
   }
 
-  const instructors = await prisma.user.findMany({
-    where,
-    select: {
+  const [instructors, totalItems] = await prisma.$transaction([
+    prisma.user.findMany({ where, select: {
       id: true,
       name: true,
       email: true,
@@ -28,10 +34,9 @@ export async function GET(req: Request) {
       status: true,
       createdAt: true,
       _count: { select: { courses: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
+    }, orderBy: { [list.sort]: list.sortDirection }, skip: list.skip, take: list.take }),
+    prisma.user.count({ where }),
+  ])
 
   const courseIds = await prisma.course.findMany({
     where: { instructorId: { in: instructors.map((i) => i.id) } },
@@ -62,6 +67,7 @@ export async function GET(req: Request) {
   const payoutByInstructorId = new Map(instructorPayoutAgg.map((r) => [r.userId ?? "", r._sum.amount ?? 0]))
 
   return Response.json({
+    pagination: paginationMetadata(list.page, list.pageSize, totalItems),
     instructors: instructors.map((i) => {
       const ids = courseIdsByInstructor.get(i.id) ?? []
       const students = ids.reduce((sum, courseId) => sum + (enrollmentCountByCourseId.get(courseId) ?? 0), 0)

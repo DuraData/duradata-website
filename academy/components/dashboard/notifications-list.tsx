@@ -1,11 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Check, CheckCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { toast } from "@/hooks/use-toast"
+import { Input } from "@/components/ui/input"
+import { ListPagination } from "@/components/shared/list-pagination"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type NotificationRow = {
   id: string
@@ -21,11 +25,13 @@ export function NotificationsList() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const listState = useListUrlState(10)
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setIsLoading(true)
     setError(null)
-    const res = await fetch("/api/notifications", { cache: "no-store" }).catch(() => null)
+    const res = await fetch(`/api/notifications${listState.queryString}`, { cache: "no-store" }).catch(() => null)
     const json = res ? await res.json().catch(() => null) : null
     if (!res || !res.ok) {
       setRows([])
@@ -34,13 +40,14 @@ export function NotificationsList() {
       return
     }
     setRows((json?.notifications ?? []) as NotificationRow[])
+    if (json?.pagination) setPagination(json.pagination)
     setIsLoading(false)
     window.dispatchEvent(new Event("duradata-academy:notifications-updated"))
-  }
+  }, [listState.queryString])
 
   useEffect(() => {
     void load()
-  }, [])
+  }, [load])
 
   const markRead = async (id: string) => {
     setBusy(true)
@@ -118,6 +125,7 @@ export function NotificationsList() {
 
   return (
     <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+      <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-[minmax(0,1fr)_160px_auto]"><Input aria-label="Search notifications" value={listState.search} onChange={(event) => listState.setSearch(event.target.value)} placeholder="Search notifications..." /><select aria-label="Filter notifications" value={listState.value("read")} onChange={(event) => listState.setValue("read", event.target.value)} className="h-10 rounded-md border bg-background px-3"><option value="">All</option><option value="unread">Unread</option><option value="read">Read</option></select><Button variant="ghost" onClick={listState.clear}>Clear</Button></div>
       <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
         <p className="text-sm text-muted-foreground">
           {unread > 0 ? `${unread} unread` : "All read"}
@@ -166,6 +174,7 @@ export function NotificationsList() {
           )
         })}
       </div>
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
     </div>
   )
 }

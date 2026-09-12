@@ -1,20 +1,28 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
+import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
   if (auth instanceof Response) return auth
 
   const url = new URL(req.url)
+  let list
+  try {
+    list = parseListQuery(url.searchParams, { defaultPageSize: 10, defaultSort: "createdAt", allowedSorts: ["createdAt", "updatedAt", "reviewedAt"] as const })
+  } catch (error) {
+    return listQueryErrorResponse(error)
+  }
   const status = url.searchParams.get("status")
+  const q = list.search
 
   const where: Record<string, unknown> = {}
   if (status && ["pending", "approved", "rejected"].includes(status)) where.status = status
+  if (q) where.OR = [{ user: { name: { contains: q } } }, { user: { email: { contains: q } } }, { expertise: { contains: q } }]
 
-  const applications = await prisma.instructorApplication.findMany({
-    where,
-    select: {
+  const [applications, totalItems] = await prisma.$transaction([
+    prisma.instructorApplication.findMany({ where, select: {
       id: true,
       status: true,
       createdAt: true,
@@ -30,12 +38,11 @@ export async function GET(req: Request) {
       preferredCategorySlugs: true,
       resumeFileName: true,
       user: { select: { id: true, name: true, email: true, role: true, status: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
+    }, orderBy: { [list.sort]: list.sortDirection }, skip: list.skip, take: list.take }),
+    prisma.instructorApplication.count({ where }),
+  ])
 
-  return Response.json({ applications })
+  return Response.json({ applications, pagination: paginationMetadata(list.page, list.pageSize, totalItems) })
 }
 
 const PatchSchema = z.object({

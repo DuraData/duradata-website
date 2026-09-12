@@ -1,10 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Download, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { ListPagination } from "@/components/shared/list-pagination"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type CertificateRow = {
   id: string
@@ -17,15 +20,14 @@ export function CertificatesList() {
   const [rows, setRows] = useState<CertificateRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const listState = useListUrlState(10)
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
 
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
+  const load = useCallback(async () => {
       setIsLoading(true)
       setError(null)
-      const res = await fetch("/api/certificates", { cache: "no-store" }).catch(() => null)
+      const res = await fetch(`/api/certificates${listState.queryString}`, { cache: "no-store" }).catch(() => null)
       const json = res ? await res.json().catch(() => null) : null
-      if (cancelled) return
       if (!res || !res.ok) {
         setRows([])
         setError(json?.error ?? "Failed to load certificates")
@@ -33,13 +35,10 @@ export function CertificatesList() {
         return
       }
       setRows((json?.certificates ?? []) as CertificateRow[])
+      if (json?.pagination) setPagination(json.pagination)
       setIsLoading(false)
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  }, [listState.queryString])
+  useEffect(() => { void load() }, [load])
 
   if (isLoading) {
     return (
@@ -78,6 +77,7 @@ export function CertificatesList() {
 
   return (
     <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+      <div className="flex flex-wrap items-center gap-3 border-b border-border p-4"><select aria-label="Filter certificates by learning type" value={listState.value("kind")} onChange={(event) => listState.setValue("kind", event.target.value)} className="h-10 rounded-md border bg-background px-3"><option value="">All certificates</option><option value="free-learning">Free Learning</option><option value="course">Corporate Learning</option></select><select aria-label="Sort certificates" value={listState.value("sortDirection") || "desc"} onChange={(event) => listState.setValue("sortDirection", event.target.value)} className="h-10 rounded-md border bg-background px-3"><option value="desc">Newest</option><option value="asc">Oldest</option></select><Button variant="ghost" onClick={listState.clear}>Clear</Button></div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -131,6 +131,7 @@ export function CertificatesList() {
           </tbody>
         </table>
       </div>
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
     </div>
   )
 }

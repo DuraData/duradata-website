@@ -1,7 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Input } from "@/components/ui/input"
+import { UrlListPagination } from "@/components/shared/list-pagination"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type EnrollmentRow = {
   id: string
@@ -15,15 +19,15 @@ export function InternalInstructorEnrollmentsTable() {
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState<PaginationMetadata | null>(null)
+  const listState = useListUrlState()
 
-  useEffect(() => {
-    const controller = new AbortController()
-    const load = async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
       setIsLoading(true)
       setError(null)
-      const res = await fetch("/api/internal-instructor/enrollments", {
+      const res = await fetch(`/api/internal-instructor/enrollments${listState.queryString}`, {
         cache: "no-store",
-        signal: controller.signal,
+        signal,
       }).catch(() => null)
       const json = res ? await res.json().catch(() => null) : null
       if (!res || !res.ok) {
@@ -33,17 +37,24 @@ export function InternalInstructorEnrollmentsTable() {
         return
       }
       setEnrollments((json?.enrollments ?? []) as EnrollmentRow[])
+      setPagination((json?.pagination ?? null) as PaginationMetadata | null)
       setIsLoading(false)
-    }
-    void load()
+  }, [listState.queryString])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void load(controller.signal)
     return () => controller.abort()
-  }, [])
+  }, [load])
 
   return (
     <div className="bg-card rounded-xl border border-border shadow-sm">
       <div className="p-5 border-b border-border">
         <h2 className="text-lg font-semibold text-foreground">Enrollments</h2>
         <p className="text-sm text-muted-foreground">Student counts and progress across your internal courses</p>
+      </div>
+      <div className="border-b border-border p-5">
+        <Input aria-label="Search enrollments" placeholder="Search student, email or course" value={listState.search} onChange={(event) => listState.setSearch(event.target.value)} />
       </div>
 
       {error ? <p className="px-5 py-4 text-sm text-destructive">{error}</p> : null}
@@ -114,6 +125,7 @@ export function InternalInstructorEnrollmentsTable() {
           </table>
         </div>
       ) : null}
+      {pagination ? <UrlListPagination pagination={pagination} /> : null}
     </div>
   )
 }

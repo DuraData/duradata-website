@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,9 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog"
 import { toast } from "@/hooks/use-toast"
+import { useListUrlState } from "@/hooks/use-list-url-state"
+import { ListPagination } from "@/components/shared/list-pagination"
+import type { PaginationMetadata } from "@/lib/list-query"
 
 type CategoryRow = { id: string; name: string; slug: string; _count: { courses: number } }
 
@@ -15,16 +18,18 @@ export function AdminCategoriesTable() {
   const [categories, setCategories] = useState<CategoryRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const listState = useListUrlState(10)
+  const [pagination, setPagination] = useState<PaginationMetadata>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false, startItem: 0, endItem: 0 })
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<CategoryRow | null>(null)
   const [name, setName] = useState("")
   const [busy, setBusy] = useState(false)
 
-  const load = async (signal?: AbortSignal) => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
-    const res = await fetch("/api/admin/categories", { cache: "no-store", signal }).catch(() => null)
+    const res = await fetch(`/api/admin/categories${listState.queryString}`, { cache: "no-store", signal }).catch(() => null)
     const json = res ? await res.json().catch(() => null) : null
     if (!res || !res.ok) {
       setCategories([])
@@ -33,14 +38,15 @@ export function AdminCategoriesTable() {
       return
     }
     setCategories((json?.categories ?? []) as CategoryRow[])
+    if (json?.pagination) setPagination(json.pagination)
     setIsLoading(false)
-  }
+  }, [listState.queryString])
 
   useEffect(() => {
     const controller = new AbortController()
     void load(controller.signal)
     return () => controller.abort()
-  }, [])
+  }, [load])
 
   const openCreate = () => {
     setEditing(null)
@@ -106,6 +112,7 @@ export function AdminCategoriesTable() {
           New category
         </Button>
       </div>
+      <div className="grid gap-3 border-b border-border p-5 md:grid-cols-[minmax(0,1fr)_180px_auto]"><Input aria-label="Search categories" value={listState.search} onChange={(event) => listState.setSearch(event.target.value)} placeholder="Search category name or slug..." /><select aria-label="Sort categories" value={listState.value("sort") || "name"} onChange={(event) => listState.setValue("sort", event.target.value)} className="h-10 rounded-md border bg-background px-3"><option value="name">Name A-Z</option><option value="createdAt">Newest</option><option value="updatedAt">Recently updated</option></select><Button variant="ghost" onClick={listState.clear}>Clear</Button></div>
 
       {error ? <p className="px-5 py-4 text-sm text-destructive">{error}</p> : null}
 
@@ -180,6 +187,7 @@ export function AdminCategoriesTable() {
           </table>
         </div>
       ) : null}
+      <ListPagination pagination={pagination} onPageChange={listState.setPage} onPageSizeChange={listState.setPageSize} />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
