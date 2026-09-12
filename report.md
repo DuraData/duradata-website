@@ -93,7 +93,7 @@ Local safety and structure checks passed before deployment:
 - optimized Next.js production build: **passed**
 - targeted ESLint and TypeScript type-check: **passed**
 - unit tests: **13/13 passed**
-- existing Playwright E2E suite: **47/47 passed** against the disposable `duradata_academy_test` database
+- established Playwright E2E baseline: **47/47 passed** against the disposable `duradata_academy_test` database before this release; the suite now discovers **49 tests**, including Free Learning plus Admin Courses, Users, Organizations, and Enrollments list navigation. The current Windows session could not start the isolated MySQL service, so the two new browser cases were verified against production after deployment without mutating live data.
 - feature matrix: all eight Academic/Corporate/Free combinations passed page, API, and navigation checks
 - host routing, four-role authentication/RBAC, password reset, course approval, enrollment, organizations/assignments, Free Learning, mocked Paynow fulfillment, idempotency, and upload security: **passed**
 
@@ -105,7 +105,9 @@ Live browser verification passed for `https://duradata.co.za`, `https://academy.
 
 ## Hostinger production deployment
 
-Hostinger is connected to GitHub branch `main` and deploys pushes automatically. Deployment `42cdbaa3` completed on **2026-09-12 at 09:57 Africa/Johannesburg** using Node.js 24.x. It applied no pending migrations, preserved the already-installed version-1 library, passed production database verification and TypeScript compilation, built 75 Next.js routes, and prepared the flattened standalone bundle.
+Hostinger is connected to GitHub branch `main` and deploys pushes automatically. The original library deployment `42cdbaa3` completed on **2026-09-12 at 09:57 Africa/Johannesburg** using Node.js 24.x. The growing-list release was delivered by `cab0e13` with production MySQL compatibility hardening in `e45bdf0`, `5555d7c`, and final application commit `c93b325`. Hostinger marked `c93b325` **Completed / Current** on **2026-09-12 at 12:08 Africa/Johannesburg**. The release applied migration `20260912110000_add_list_query_indexes`, retained the managed Free Learning library, passed production database verification and TypeScript compilation, and built the same 75-route standalone application.
+
+Post-deployment browser QA verified the main marketing home page, both Academy links opening `academy.duradata.co.za` in a new tab with `noopener noreferrer`, the ten-course Free Learning catalogue, server search (`Python` returned two genuinely matching courses), combined search plus category filtering, filtered counts, URL restoration state, the beyond-last-page empty state, strict invalid-sort handling, and the corporate-training fallback search. Mobile (390 × 844) and tablet (768 × 1024) checks had no horizontal overflow and reported no new browser errors. The initial live search check exposed MySQL prepared-value collation error 1267; the final implementation explicitly coerces bound search values to `utf8mb4_unicode_ci` and the identical production query passed after redeployment. Authenticated admin UI mutation was not performed against production.
 
 - Main website: `https://duradata.co.za`
 - Academy: `https://academy.duradata.co.za`
