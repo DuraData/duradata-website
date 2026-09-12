@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/auth"
 import { getCompletedLessonTotals, getCourseLessonTotals } from "@/lib/course-progress"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 export async function GET(req: Request) {
   const session = await getSession()
@@ -35,7 +36,10 @@ export async function GET(req: Request) {
   const courseId = url.searchParams.get("courseId")
   const where: Record<string, unknown> = { courseId: { in: courseIds } }
   if (courseId) where.courseId = { in: courseIds.filter((id) => id === courseId) }
-  if (list.search) where.OR = [{ user: { name: { contains: list.search } } }, { user: { email: { contains: list.search } } }, { course: { title: { contains: list.search } } }]
+  if (list.search) {
+    const [userIds, matchingCourseIds] = await Promise.all([mysqlContainsIds("User", ["name", "email"], list.search), mysqlContainsIds("Course", ["title"], list.search)])
+    where.OR = [{ userId: { in: userIds } }, { courseId: { in: matchingCourseIds } }]
+  }
   const [enrollments, totalItems] = await prisma.$transaction([prisma.enrollment.findMany({
     where,
     include: { user: { select: { id: true, name: true, email: true } }, course: { select: { id: true, title: true } } },

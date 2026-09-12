@@ -2,6 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
@@ -22,14 +23,8 @@ export async function GET(req: Request) {
   if (type && ["course_complaint", "user_report"].includes(type)) where.type = type
   if (status && ["open", "reviewing", "resolved", "dismissed"].includes(status)) where.status = status
   if (q) {
-    where.OR = [
-      { message: { contains: q } },
-      { reporter: { email: { contains: q } } },
-      { reporter: { name: { contains: q } } },
-      { course: { title: { contains: q } } },
-      { accusedUser: { email: { contains: q } } },
-      { accusedUser: { name: { contains: q } } },
-    ]
+    const [reportIds, userIds, courseIds] = await Promise.all([mysqlContainsIds("Report", ["message"], q), mysqlContainsIds("User", ["email", "name"], q), mysqlContainsIds("Course", ["title"], q)])
+    where.OR = [{ id: { in: reportIds } }, { reporterId: { in: userIds } }, { accusedUserId: { in: userIds } }, { courseId: { in: courseIds } }]
   }
 
   const [reports, totalItems] = await prisma.$transaction([

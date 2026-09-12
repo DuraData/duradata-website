@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { getCourseLessonTotals } from "@/lib/course-progress"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
@@ -27,11 +28,11 @@ export async function GET(req: Request) {
     { course: { corporateAssignments: { some: { organizationId } } } },
   ]
   if (q) {
+    const [userIds, courseIds, instructorIds] = await Promise.all([mysqlContainsIds("User", ["email", "name"], q), mysqlContainsIds("Course", ["title"], q), mysqlContainsIds("User", ["name"], q)])
     where.OR = [
-      { user: { email: { contains: q } } },
-      { user: { name: { contains: q } } },
-      { course: { title: { contains: q } } },
-      { course: { instructor: { name: { contains: q } } } },
+      { userId: { in: userIds } },
+      { courseId: { in: courseIds } },
+      { course: { instructorId: { in: instructorIds } } },
     ]
   }
 

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
@@ -18,12 +19,7 @@ export async function GET(req: Request) {
 
   const where: Record<string, unknown> = { role: "instructor" }
   if (status && ["active", "suspended", "banned"].includes(status)) where.status = status
-  if (q) {
-    where.OR = [
-      { email: { contains: q } },
-      { name: { contains: q } },
-    ]
-  }
+  if (q) where.id = { in: await mysqlContainsIds("User", ["email", "name"], q) }
 
   const [instructors, totalItems] = await prisma.$transaction([
     prisma.user.findMany({ where, select: {

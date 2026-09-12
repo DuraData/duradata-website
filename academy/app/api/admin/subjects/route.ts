@@ -2,6 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
@@ -22,13 +23,8 @@ export async function GET(req: Request) {
   if (status && ["draft", "pending", "approved", "rejected", "suspended"].includes(status)) where.status = status
   if (examiningBody && ["zimsec", "cambridge"].includes(examiningBody)) where.examiningBody = examiningBody
   if (q) {
-    where.OR = [
-      { title: { contains: q } },
-      { description: { contains: q } },
-      { subject: { contains: q } },
-      { moderationNote: { contains: q } },
-      { teacher: { name: { contains: q } } },
-    ]
+    const [subjectIds, teacherIds] = await Promise.all([mysqlContainsIds("SubjectPackage", ["title", "description", "subject", "moderationNote"], q), mysqlContainsIds("User", ["name"], q)])
+    where.OR = [{ id: { in: subjectIds } }, { teacherId: { in: teacherIds } }]
   }
 
   const [subjects, totalItems] = await prisma.$transaction([

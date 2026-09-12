@@ -2,6 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireInternalInstructor } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 const CreateCourseSchema = z.object({
   title: z.string().trim().min(1),
@@ -33,7 +34,10 @@ export async function GET(req: Request) {
   const status = url.searchParams.get("status")
   const where: Record<string, unknown> = { instructorId: auth.user.id }
   if (status) where.status = status
-  if (list.search) where.OR = [{ title: { contains: list.search } }, { description: { contains: list.search } }, { category: { name: { contains: list.search } } }]
+  if (list.search) {
+    const [courseIds, categoryIds] = await Promise.all([mysqlContainsIds("Course", ["title", "description"], list.search), mysqlContainsIds("Category", ["name"], list.search)])
+    where.OR = [{ id: { in: courseIds } }, { categoryId: { in: categoryIds } }]
+  }
 
   const [courses, totalItems] = await prisma.$transaction([prisma.course.findMany({
     where,

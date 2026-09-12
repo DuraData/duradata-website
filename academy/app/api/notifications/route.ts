@@ -2,6 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/auth"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 async function ensureStudent() {
   const session = await getSession()
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
   const where: Record<string, unknown> = { userId: auth.user.id }
   if (read === "unread") where.readAt = null
   if (read === "read") where.readAt = { not: null }
-  if (list.search) where.OR = [{ title: { contains: list.search } }, { body: { contains: list.search } }]
+  if (list.search) where.id = { in: await mysqlContainsIds("Notification", ["title", "body"], list.search) }
   const [notifications, totalItems] = await prisma.$transaction([
     prisma.notification.findMany({ where, orderBy: { createdAt: list.sortDirection }, skip: list.skip, take: list.take }),
     prisma.notification.count({ where }),

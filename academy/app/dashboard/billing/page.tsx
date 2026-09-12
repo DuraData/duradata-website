@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { UrlListPagination } from "@/components/shared/list-pagination"
 import { paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 export const dynamic = "force-dynamic"
 
@@ -25,7 +26,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const statusFilter = params.get("status")
   const where: Record<string, unknown> = { userId: auth.user.id }
   if (statusFilter && ["open", "paid", "void"].includes(statusFilter)) where.status = statusFilter
-  if (list.search) where.reference = { contains: list.search }
+  if (list.search) where.id = { in: await mysqlContainsIds("Invoice", ["reference"], list.search) }
   const [subscription, invoices, totalItems] = await prisma.$transaction([
     prisma.subscription.findUnique({ where: { userId: auth.user.id } }),
     prisma.invoice.findMany({ where, orderBy: { [list.sort]: list.sortDirection }, skip: list.skip, take: list.take }),

@@ -2,6 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
 
@@ -20,12 +21,10 @@ export async function GET(req: Request) {
   const where: Record<string, unknown> = {}
   if (active === "active") where.active = true
   if (active === "inactive") where.active = false
-  if (list.search) where.OR = [
-    { name: { contains: list.search } },
-    { slug: { contains: list.search } },
-    { members: { some: { user: { name: { contains: list.search } } } } },
-    { members: { some: { user: { email: { contains: list.search } } } } },
-  ]
+  if (list.search) {
+    const [organizationIds, userIds] = await Promise.all([mysqlContainsIds("Organization", ["name", "slug"], list.search), mysqlContainsIds("User", ["name", "email"], list.search)])
+    where.OR = [{ id: { in: organizationIds } }, { members: { some: { userId: { in: userIds } } } }]
+  }
   const [organizations, totalItems, courses, users] = await prisma.$transaction([
     prisma.organization.findMany({
       where,

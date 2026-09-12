@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { CurrencyCode } from "@/lib/generated/prisma/enums"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
@@ -27,13 +28,8 @@ export async function GET(req: Request) {
   if (userId) where.userId = userId
   if (courseId) where.courseId = courseId
   if (q) {
-    where.OR = [
-      { reference: { contains: q } },
-      { description: { contains: q } },
-      { user: { email: { contains: q } } },
-      { user: { name: { contains: q } } },
-      { course: { title: { contains: q } } },
-    ]
+    const [transactionIds, userIds, courseIds] = await Promise.all([mysqlContainsIds("Transaction", ["reference", "description"], q), mysqlContainsIds("User", ["email", "name"], q), mysqlContainsIds("Course", ["title"], q)])
+    where.OR = [{ id: { in: transactionIds } }, { userId: { in: userIds } }, { courseId: { in: courseIds } }]
   }
 
   const [transactions, totalItems, revenueAgg, payoutAgg, commissionAgg] = await Promise.all([

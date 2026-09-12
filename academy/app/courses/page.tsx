@@ -13,6 +13,7 @@ import { CATALOGUE_PAGE_SIZES, paginationMetadata, parseListQuery } from "@/lib/
 import { UrlListPagination } from "@/components/shared/list-pagination"
 import { notFound } from "next/navigation"
 import { parseOptionalUuid } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 // Feature switches are administrative controls and must take effect immediately.
 export const dynamic = "force-dynamic"
@@ -46,7 +47,10 @@ export default async function CoursesPage({ searchParams }: { searchParams: Prom
   }
   const where: Record<string, unknown> = { status: "approved" }
   if (categoryId) where.categoryId = categoryId
-  if (list.search) where.OR = [{ title: { contains: list.search } }, { description: { contains: list.search } }, { instructor: { name: { contains: list.search } } }, { category: { name: { contains: list.search } } }]
+  if (list.search) {
+    const [courseIds, instructorIds, categoryIds] = await Promise.all([mysqlContainsIds("Course", ["title", "description"], list.search), mysqlContainsIds("User", ["name"], list.search), mysqlContainsIds("Category", ["name"], list.search)])
+    where.OR = [{ id: { in: courseIds } }, { instructorId: { in: instructorIds } }, { categoryId: { in: categoryIds } }]
+  }
   const orderBy = list.sort === "popular" ? { enrollments: { _count: list.sortDirection } } : { [list.sort]: list.sortDirection }
   const [courses, totalItems, allApproved, categories] = await prisma.$transaction([
     prisma.course.findMany({ where, include: { instructor: { select: { name: true } } }, orderBy, skip: list.skip, take: list.take }),

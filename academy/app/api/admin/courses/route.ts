@@ -2,6 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery, parseOptionalBoolean, parseOptionalEnum, parseOptionalUuid } from "@/lib/list-query"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
@@ -26,13 +27,15 @@ export async function GET(req: Request) {
   if (categoryId) where.categoryId = categoryId
   if (instructorId) where.instructorId = instructorId
   if (q) {
+    const [courseIds, userIds, categoryIds] = await Promise.all([
+      mysqlContainsIds("Course", ["title", "description", "moderationNote"], q),
+      mysqlContainsIds("User", ["name", "email"], q),
+      mysqlContainsIds("Category", ["name"], q),
+    ])
     where.OR = [
-      { title: { contains: q } },
-      { description: { contains: q } },
-      { moderationNote: { contains: q } },
-      { instructor: { name: { contains: q } } },
-      { instructor: { email: { contains: q } } },
-      { category: { name: { contains: q } } },
+      { id: { in: courseIds } },
+      { instructorId: { in: userIds } },
+      { categoryId: { in: categoryIds } },
     ]
   }
 
