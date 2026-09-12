@@ -9,6 +9,8 @@ export type MySqlConnectionOptions = {
   connectionLimit: number
   connectTimeout: number
   idleTimeout: number
+  charset: string
+  collation: string
   ssl?: boolean | { rejectUnauthorized: boolean; ca?: string }
 }
 
@@ -46,6 +48,11 @@ export function mysqlConnectionOptions(): MySqlConnectionOptions {
     connectionLimit: Number(url.searchParams.get("connection_limit") || 5),
     connectTimeout: Number(url.searchParams.get("connect_timeout") || 10_000),
     idleTimeout: Number(url.searchParams.get("idle_timeout") || 10),
+    // Keep bound string parameters compatible with the schema's utf8mb4_unicode_ci
+    // columns. The MariaDB driver otherwise negotiates a binary collation on
+    // some MySQL hosts, which makes prepared `LIKE` predicates fail with 1267.
+    charset: "utf8mb4",
+    collation: "utf8mb4_unicode_ci",
     ...(useTls ? { ssl: ca ? { rejectUnauthorized: true, ca } : true } : {}),
   }
 }

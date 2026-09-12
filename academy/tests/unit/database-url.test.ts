@@ -14,6 +14,8 @@ test("production MySQL options enable TLS and parse connection details", () => {
     assert.equal(options.database, "academy")
     assert.equal(options.connectionLimit, 4)
     assert.equal(options.ssl, true)
+    assert.equal(options.charset, "utf8mb4")
+    assert.equal(options.collation, "utf8mb4_unicode_ci")
   } finally {
     process.env.ACADEMY_DATABASE_URL = previousUrl
     Object.assign(process.env, { NODE_ENV: previousNodeEnv })
