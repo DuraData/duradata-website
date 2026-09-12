@@ -10,6 +10,16 @@ test("free-learning catalogue keeps server query state in the URL and resets it"
   await expect(page).toHaveURL(/\/learn$/)
 })
 
+test("public catalogues recover from invalid query parameters", async ({ page }) => {
+  await page.goto("/learn?sort=passwordHash")
+  await expect(page).toHaveURL(/\/learn$/)
+  await expect(page.getByRole("heading", { name: "Free coding courses" })).toBeVisible()
+
+  await page.goto("/courses?categoryId=not-a-uuid&sort=passwordHash")
+  await expect(page).toHaveURL(/\/courses$/)
+  await expect(page.getByRole("heading", { name: "Courses" })).toBeVisible()
+})
+
 test("admin growing lists expose searchable URL-backed server pagination controls", async ({ page }) => {
   await loginAs(page, "admin")
   const cases = [

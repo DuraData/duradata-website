@@ -22,6 +22,15 @@ export type ListQuery<TSort extends string> = {
   sortDirection: "asc" | "desc"
 }
 
+type ListQueryOptions<TSort extends string> = {
+  defaultPageSize: number
+  allowedPageSizes?: readonly number[]
+  defaultSort: TSort
+  allowedSorts: readonly TSort[]
+  defaultSortDirection?: "asc" | "desc"
+  maxSearchLength?: number
+}
+
 export class ListQueryError extends Error {}
 
 export function parseOptionalEnum<T extends string>(searchParams: URLSearchParams, key: string, allowed: readonly T[]): T | null {
@@ -57,14 +66,7 @@ function positiveInteger(value: string | null, fallback: number, field: string) 
 
 export function parseListQuery<TSort extends string>(
   searchParams: URLSearchParams,
-  options: {
-    defaultPageSize: number
-    allowedPageSizes?: readonly number[]
-    defaultSort: TSort
-    allowedSorts: readonly TSort[]
-    defaultSortDirection?: "asc" | "desc"
-    maxSearchLength?: number
-  },
+  options: ListQueryOptions<TSort>,
 ): ListQuery<TSort> {
   const allowedPageSizes = options.allowedPageSizes ?? TABLE_PAGE_SIZES
   const page = positiveInteger(searchParams.get("page"), 1, "page")
@@ -91,6 +93,33 @@ export function parseListQuery<TSort extends string>(
     sort: rawSort as TSort,
     sortDirection: rawDirection,
   }
+}
+
+export function sanitizeListQueryParams<TSort extends string>(searchParams: URLSearchParams, options: ListQueryOptions<TSort>) {
+  const sanitized = new URLSearchParams(searchParams)
+  const allowedPageSizes = options.allowedPageSizes ?? TABLE_PAGE_SIZES
+  const maxSearchLength = options.maxSearchLength ?? 100
+  const isPositiveInteger = (value: string) => /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) >= 1
+
+  const page = sanitized.get("page")
+  if (page !== null && !isPositiveInteger(page)) sanitized.delete("page")
+
+  const pageSize = sanitized.get("pageSize")
+  if (pageSize !== null && (!isPositiveInteger(pageSize) || !allowedPageSizes.includes(Number(pageSize)))) sanitized.delete("pageSize")
+
+  const sort = sanitized.get("sort")
+  if (sort !== null && !options.allowedSorts.includes(sort as TSort)) sanitized.delete("sort")
+
+  const sortDirection = sanitized.get("sortDirection")
+  if (sortDirection !== null && sortDirection !== "asc" && sortDirection !== "desc") sanitized.delete("sortDirection")
+
+  const searchKey = sanitized.has("search") ? "search" : sanitized.has("q") ? "q" : null
+  if (searchKey) {
+    const search = sanitized.get(searchKey)?.trim() ?? ""
+    if (search.length > maxSearchLength) sanitized.set(searchKey, search.slice(0, maxSearchLength))
+  }
+
+  return { params: sanitized, changed: sanitized.toString() !== searchParams.toString() }
 }
 
 export function paginationMetadata(page: number, pageSize: number, totalItems: number): PaginationMetadata {

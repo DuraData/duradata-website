@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { ListQueryError, paginationMetadata, parseListQuery, parseOptionalBoolean, parseOptionalEnum, parseOptionalUuid } from "../../lib/list-query"
+import { ListQueryError, paginationMetadata, parseListQuery, parseOptionalBoolean, parseOptionalEnum, parseOptionalUuid, sanitizeListQueryParams } from "../../lib/list-query"
 
 const options = { defaultPageSize: 10, defaultSort: "createdAt" as const, allowedSorts: ["createdAt", "title"] as const }
 
@@ -22,6 +22,23 @@ test("list filters reject values outside their explicit whitelist", () => {
   assert.throws(() => parseOptionalBoolean(new URLSearchParams("featured=yes"), "featured"), ListQueryError)
   assert.equal(parseOptionalUuid(new URLSearchParams("courseId=91664ff1-0dc5-4fab-b164-7da6db30a892"), "courseId"), "91664ff1-0dc5-4fab-b164-7da6db30a892")
   assert.throws(() => parseOptionalUuid(new URLSearchParams("courseId=all"), "courseId"), ListQueryError)
+})
+
+test("public list queries discard unsafe values while preserving valid filters", () => {
+  const original = new URLSearchParams("search=Python&sort=passwordHash&page=0&pageSize=999&sortDirection=sideways&category=Programming")
+  const sanitized = sanitizeListQueryParams(original, options)
+
+  assert.equal(sanitized.changed, true)
+  assert.equal(sanitized.params.toString(), "search=Python&category=Programming")
+  assert.deepEqual(parseListQuery(sanitized.params, options), {
+    page: 1,
+    pageSize: 10,
+    skip: 0,
+    take: 10,
+    search: "Python",
+    sort: "createdAt",
+    sortDirection: "desc",
+  })
 })
 
 test("pagination metadata handles first, middle, last, empty, and out-of-range pages", () => {

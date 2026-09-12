@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { businessTrainingPrograms, type TrainingBadge } from "@/lib/business-training"
 import { prisma } from "@/lib/prisma"
-import { CATALOGUE_PAGE_SIZES, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { CATALOGUE_PAGE_SIZES, paginationMetadata, parseListQuery, sanitizeListQueryParams } from "@/lib/list-query"
 import { UrlListPagination } from "@/components/shared/list-pagination"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 import { parseOptionalUuid } from "@/lib/list-query"
 import { mysqlContainsIds } from "@/lib/mysql-search"
 
@@ -38,13 +38,17 @@ export default async function CoursesPage({ searchParams }: { searchParams: Prom
   const raw = await searchParams
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(raw)) if (typeof value === "string") params.set(key, value)
-  let list, categoryId
-  try {
-    list = parseListQuery(params, { defaultPageSize: 12, allowedPageSizes: CATALOGUE_PAGE_SIZES, defaultSort: "title", allowedSorts: ["title", "createdAt", "updatedAt", "popular"] as const, defaultSortDirection: "asc" })
-    categoryId = parseOptionalUuid(params, "categoryId")
-  } catch {
-    notFound()
+  const listOptions = { defaultPageSize: 12, allowedPageSizes: CATALOGUE_PAGE_SIZES, defaultSort: "title", allowedSorts: ["title", "createdAt", "updatedAt", "popular"] as const, defaultSortDirection: "asc" as const }
+  const sanitized = sanitizeListQueryParams(params, listOptions)
+  const categoryIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  const rawCategoryId = sanitized.params.get("categoryId")
+  if (rawCategoryId && !categoryIdPattern.test(rawCategoryId)) {
+    sanitized.params.delete("categoryId")
+    sanitized.changed = true
   }
+  if (sanitized.changed) redirect(`/courses${sanitized.params.size ? `?${sanitized.params}` : ""}`)
+  const list = parseListQuery(sanitized.params, listOptions)
+  const categoryId = parseOptionalUuid(sanitized.params, "categoryId")
   const where: Record<string, unknown> = { status: "approved" }
   if (categoryId) where.categoryId = categoryId
   if (list.search) {

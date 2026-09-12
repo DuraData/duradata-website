@@ -2,9 +2,10 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { FreeLearningCatalogue } from "@/components/tutorials/free-learning-catalogue"
 import { FREE_CODING_LIBRARY_SLUGS } from "@/content/free-coding-library"
-import { CATALOGUE_PAGE_SIZES, paginationMetadata, parseListQuery } from "@/lib/list-query"
+import { CATALOGUE_PAGE_SIZES, paginationMetadata, parseListQuery, sanitizeListQueryParams } from "@/lib/list-query"
 import { prisma } from "@/lib/prisma"
 import { mysqlContainsIds } from "@/lib/mysql-search"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
@@ -12,13 +13,10 @@ export default async function FreeLearningPage({ searchParams }: { searchParams:
   const raw = await searchParams
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(raw)) if (typeof value === "string") params.set(key, value)
-  let list
-  try {
-    list = parseListQuery(params, { defaultPageSize: 12, allowedPageSizes: CATALOGUE_PAGE_SIZES, defaultSort: "title", allowedSorts: ["title", "publishedAt", "updatedAt"] as const, defaultSortDirection: "asc" })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid catalogue query"
-    return <div className="min-h-screen bg-background"><Navbar /><main className="mx-auto max-w-7xl px-4 pb-16 pt-28"><h1>Invalid catalogue query</h1><p className="mt-3 text-muted-foreground">{message}</p></main><Footer /></div>
-  }
+  const listOptions = { defaultPageSize: 12, allowedPageSizes: CATALOGUE_PAGE_SIZES, defaultSort: "title", allowedSorts: ["title", "publishedAt", "updatedAt"] as const, defaultSortDirection: "asc" as const }
+  const sanitized = sanitizeListQueryParams(params, listOptions)
+  if (sanitized.changed) redirect(`/learn${sanitized.params.size ? `?${sanitized.params}` : ""}`)
+  const list = parseListQuery(sanitized.params, listOptions)
   const difficulty = params.get("difficulty")
   const category = params.get("category")
   const where: Record<string, unknown> = { status: "published", courseType: "FREE", slug: { in: FREE_CODING_LIBRARY_SLUGS } }
