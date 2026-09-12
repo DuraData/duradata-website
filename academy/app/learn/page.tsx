@@ -4,6 +4,7 @@ import { FreeLearningCatalogue } from "@/components/tutorials/free-learning-cata
 import { FREE_CODING_LIBRARY_SLUGS } from "@/content/free-coding-library"
 import { CATALOGUE_PAGE_SIZES, paginationMetadata, parseListQuery } from "@/lib/list-query"
 import { prisma } from "@/lib/prisma"
+import { mysqlContainsIds } from "@/lib/mysql-search"
 
 export const dynamic = "force-dynamic"
 
@@ -23,11 +24,13 @@ export default async function FreeLearningPage({ searchParams }: { searchParams:
   const where: Record<string, unknown> = { status: "published", courseType: "FREE", slug: { in: FREE_CODING_LIBRARY_SLUGS } }
   if (difficulty && ["beginner", "intermediate", "advanced"].includes(difficulty)) where.difficulty = difficulty
   if (category) where.category = category
-  if (list.search) where.OR = [
-    { title: { contains: list.search } }, { shortDescription: { contains: list.search } },
-    { description: { contains: list.search } }, { category: { contains: list.search } },
-    ...(["beginner", "intermediate", "advanced"].includes(list.search.toLowerCase()) ? [{ difficulty: list.search.toLowerCase() }] : []),
-  ]
+  if (list.search) {
+    const matchingIds = await mysqlContainsIds("Tutorial", ["title", "shortDescription", "description", "category"], list.search)
+    where.OR = [
+      { id: { in: matchingIds } },
+      ...(["beginner", "intermediate", "advanced"].includes(list.search.toLowerCase()) ? [{ difficulty: list.search.toLowerCase() }] : []),
+    ]
+  }
   const [tutorials, totalItems, categories] = await prisma.$transaction([
     prisma.tutorial.findMany({ where, include: { sections: { include: { _count: { select: { lessons: { where: { isPublished: true } } } } } } }, orderBy: [{ [list.sort]: list.sortDirection }, { title: "asc" }], skip: list.skip, take: list.take }),
     prisma.tutorial.count({ where }),
