@@ -14,11 +14,12 @@ export default async function CertificateViewPage({ params }: { params: Promise<
   if (!auth) redirect("/")
 
   const { id } = await params
-  const cert = await prisma.certificate.findUnique({
-    where: { id },
-    include: { course: { select: { id: true, title: true } } },
-  })
+  const courseCert = await prisma.certificate.findUnique({ where: { id }, include: { course: { select: { id: true, title: true } } } })
+  const tutorialCert = courseCert ? null : await prisma.tutorialCertificate.findUnique({ where: { id }, include: { tutorial: { select: { id: true, title: true } } } })
+  const cert = courseCert ?? tutorialCert
   if (!cert || cert.userId !== auth.user.id) notFound()
+  const course = courseCert?.course ?? tutorialCert?.tutorial
+  if (!course) notFound()
 
   const issuedAt = cert.issuedAt.toLocaleDateString("en-ZW", { year: "numeric", month: "long", day: "2-digit" })
 
@@ -51,8 +52,8 @@ export default async function CertificateViewPage({ params }: { params: Promise<
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Course</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">{cert.course.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{cert.course.id}</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{course.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{course.id}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Learner</p>
@@ -71,7 +72,7 @@ export default async function CertificateViewPage({ params }: { params: Promise<
 
               <div className="rounded-lg border border-border bg-muted/30 p-4">
                 <p className="text-sm text-muted-foreground">
-                  This certificate confirms that the learner has successfully completed the course on Duradata Academy.
+                  This Certificate of Completion confirms that the learner completed the course requirements on Duradata Academy. It is not professional accreditation, university credit, or an industry certification.
                 </p>
               </div>
             </CardContent>

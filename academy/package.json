@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build && node scripts/prepare-hostinger-build.mjs",
+    "build": "prisma generate && prisma migrate deploy && npm run academy:install-free-courses && npm run academy:verify-free-courses && next build && node scripts/prepare-hostinger-build.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit --pretty false",
@@ -17,6 +17,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "node --import ./tests/setup-tsx.mjs --import tsx prisma/seed.ts",
     "db:seed-categories": "node --import ./tests/setup-tsx.mjs --import tsx scripts/seed-categories.ts",
+    "academy:install-free-courses": "node --import ./tests/setup-tsx.mjs --import tsx scripts/install-free-coding-courses.ts",
+    "academy:verify-free-courses": "node --import ./tests/setup-tsx.mjs --import tsx scripts/verify-free-coding-courses.ts",
     "auth:set-admin-password": "node --import ./tests/setup-tsx.mjs --import tsx scripts/set-admin-password.ts",
     "auth:set-content-manager-password": "node --import ./tests/setup-tsx.mjs --import tsx scripts/set-content-manager-password.ts",
     "seed:e2e": "node --import ./tests/setup-tsx.mjs --import tsx scripts/seed-e2e-users.ts",

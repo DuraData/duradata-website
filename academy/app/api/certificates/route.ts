@@ -47,12 +47,28 @@ export async function GET() {
     certificates.push(cert)
   }
 
+  const tutorialCertificates = await prisma.tutorialCertificate.findMany({
+    where: { userId: auth.user.id },
+    include: { tutorial: { select: { id: true, title: true } } },
+    orderBy: { issuedAt: "desc" },
+  })
+
   return Response.json({
-    certificates: certificates.map((c) => ({
+    certificates: [
+      ...certificates.map((c) => ({
       id: c.id,
       certificateId: c.certificateId,
       issuedAt: c.issuedAt,
       course: { id: c.courseId, title: c.course.title },
-    })),
+      kind: "course" as const,
+      })),
+      ...tutorialCertificates.map((c) => ({
+        id: c.id,
+        certificateId: c.certificateId,
+        issuedAt: c.issuedAt,
+        course: { id: c.tutorialId, title: c.tutorial.title },
+        kind: "free-learning" as const,
+      })),
+    ].sort((a, b) => b.issuedAt.getTime() - a.issuedAt.getTime()),
   })
 }

@@ -20,6 +20,8 @@ type MyCoursesResponse = {
     totalLessons: number
     completedLessons: number
     firstLessonId: string | null
+    kind: string
+    href: string
   }>
 }
 
@@ -52,7 +54,7 @@ export async function EnrolledCourses() {
         </div>
         <div className="rounded-lg border border-border bg-card p-6 shadow-xs">
           <p className="text-sm text-muted-foreground">You have not enrolled in any courses yet.</p>
-          <Link href="/courses" className="mt-4 inline-block text-sm text-primary hover:underline">Browse Courses</Link>
+          <Link href="/learn" className="mt-4 inline-block text-sm text-primary hover:underline">Browse Free Learning</Link>
         </div>
       </div>
     )
@@ -127,7 +129,7 @@ export async function EnrolledCourses() {
 
               {/* Continue Button */}
               <Button asChild className="mt-4 w-full" size="sm">
-                <Link href={`/learn/${course.id}`}>
+                <Link href={course.href}>
                   <Play className="h-4 w-4 mr-2" />
                   Continue Learning
                 </Link>

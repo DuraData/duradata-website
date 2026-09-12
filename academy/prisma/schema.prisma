@@ -194,6 +194,9 @@ model User {
   tutorialsUpdated Tutorial[] @relation("TutorialUpdater")
   tutorialProgress TutorialProgress[]
   tutorialBookmarks TutorialBookmark[]
+  tutorialEnrollments TutorialEnrollment[]
+  tutorialQuizAttempts TutorialQuizAttempt[]
+  tutorialCertificates TutorialCertificate[]
   organizationMemberships OrganizationMember[]
   organizationsCreated Organization[] @relation("OrganizationCreator")
   corporateAssignmentsCreated CourseAssignment[] @relation("CourseAssignmentCreator")
@@ -850,12 +853,26 @@ model Tutorial {
   updatedById       String?            @db.Char(36)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @default(now()) @updatedAt
+  learningObjectives Json?
+  targetAudience     String?            @db.Text
+  prerequisites      String?            @db.Text
+  category           String?
+  tags               Json?
+  language           String             @default("English")
+  courseType         String             @default("FREE")
+  ownerName          String             @default("Duradata Academy")
+  finalProject       Json?
+  sourceReferences   Json?
+  managedKey         String?            @unique
+  managedVersion     Int?
 
   createdBy User? @relation("TutorialCreator", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy User? @relation("TutorialUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
   sections TutorialSection[]
   progress TutorialProgress[]
   bookmarks TutorialBookmark[]
+  enrollments TutorialEnrollment[]
+  certificates TutorialCertificate[]
 
   @@index([status, publishedAt])
 }
@@ -935,6 +952,7 @@ model TutorialQuiz {
 
   lesson TutorialLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   questions TutorialQuizQuestion[]
+  attempts TutorialQuizAttempt[]
 }
 
 model TutorialQuizQuestion {
@@ -942,6 +960,7 @@ model TutorialQuizQuestion {
   quizId   String @db.Char(36)
   prompt   String @db.Text
   order    Int    @default(0)
+  explanation String? @db.Text
 
   quiz TutorialQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
   options TutorialQuizOption[]
@@ -988,4 +1007,47 @@ model TutorialBookmark {
 
   @@unique([userId, lessonId])
   @@index([userId, tutorialId])
+}
+
+model TutorialEnrollment {
+  id          String    @id @default(uuid()) @db.Char(36)
+  userId      String    @db.Char(36)
+  tutorialId  String    @db.Char(36)
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tutorialId])
+  @@index([tutorialId, completedAt])
+}
+
+model TutorialQuizAttempt {
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @db.Char(36)
+  quizId    String   @db.Char(36)
+  answers   Json
+  score     Int
+  total     Int
+  passed    Boolean
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz TutorialQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId, quizId, createdAt])
+}
+
+model TutorialCertificate {
+  id            String   @id @default(uuid()) @db.Char(36)
+  certificateId String   @unique
+  userId        String   @db.Char(36)
+  tutorialId    String   @db.Char(36)
+  issuedAt      DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tutorial Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tutorialId])
 }

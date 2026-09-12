@@ -24,6 +24,8 @@
     "db:generate": "npm run db:generate --workspace academy",
     "db:migrate:deploy": "npm run db:migrate:deploy --workspace academy",
     "db:seed": "npm run db:seed --workspace academy",
+    "academy:install-free-courses": "npm run academy:install-free-courses --workspace academy",
+    "academy:verify-free-courses": "npm run academy:verify-free-courses --workspace academy",
     "preview": "npm run build && npm run start"
   },
   "dependencies": {

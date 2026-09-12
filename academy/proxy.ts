@@ -45,6 +45,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
+  if (pathname === "/api/certificates" || pathname.startsWith("/api/certificates/") || pathname === "/dashboard/certificates" || pathname.startsWith("/dashboard/certificates/")) {
+    const features = await getAcademyFeatures()
+    if (!features.corporateLearningEnabled && !features.freeLearningEnabled) {
+      if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Certificates are currently disabled" }, { status: 404 })
+      return NextResponse.rewrite(new URL("/feature-disabled", request.url), { status: 404 })
+    }
+  }
+
+  if (pathname === "/api/my-courses" || pathname === "/dashboard/courses") {
+    const features = await getAcademyFeatures()
+    if (!features.corporateLearningEnabled && !features.freeLearningEnabled) {
+      if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Courses are currently disabled" }, { status: 404 })
+      return NextResponse.rewrite(new URL("/feature-disabled", request.url), { status: 404 })
+    }
+  }
+
   const feature = featureForPath(pathname)
   if (feature) {
     const features = await getAcademyFeatures()

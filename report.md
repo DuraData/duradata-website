@@ -30,6 +30,36 @@ The clean MySQL baseline is `academy/prisma/migrations/20260908000000_mysql_base
 - S3-compatible durable production image storage configuration
 - root-level development, build, start, lint, type-check, test, and migration commands
 
+## Free Coding Learning Library
+
+Duradata Academy now contains an original, production-managed Free Learning library. The catalogue exposes the exact ten requested courses when `freeLearningEnabled=true`; the existing proxy returns the disabled experience for the catalogue, course routes, and Free Learning APIs when the switch is off. All offerings have `courseType=FREE`, require no Paynow checkout, and are published in English under the owner name **Duradata Academy**.
+
+| Course | Category | Duration | Modules / lessons | Quizzes / questions | Exercises | Final project |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| HTML & CSS Fundamentals | Web Development | 9 hours | 17 / 17 | 17 / 34 | 17 | Responsive personal or business website |
+| JavaScript Programming Fundamentals | Programming | 11 hours | 21 / 21 | 21 / 42 | 21 | Interactive task-management application |
+| Python Programming for Beginners | Programming | 11 hours | 20 / 20 | 20 / 40 | 20 | Command-line expense tracker |
+| SQL & Relational Database Fundamentals | Databases | 9 hours | 24 / 24 | 24 / 48 | 24 | Training and course-management database |
+| Git & GitHub Essentials | Version Control | 6 hours | 20 / 20 | 20 / 40 | 20 | Collaborative Git repository |
+| TypeScript Fundamentals | Programming | 8 hours | 21 / 21 | 21 / 42 | 21 | Typed inventory and task application |
+| React Fundamentals | Frontend Development | 11 hours | 22 / 22 | 22 / 44 | 22 | Course catalogue and training dashboard |
+| Node.js & REST API Development | Backend Development | 11 hours | 23 / 23 | 23 / 46 | 23 | Training management REST API |
+| C# & .NET Fundamentals | Microsoft Development | 11 hours | 23 / 23 | 23 / 46 | 23 | Employee and course registration application |
+| Data Structures, Algorithms & Problem Solving | Computer Science | 11 hours | 24 / 24 | 24 / 48 | 24 | Practical algorithm challenge set |
+| **Total** | 8 categories | **98 hours** | **215 / 215** | **215 / 430** | **215** | **10 projects** |
+
+Each lesson includes objectives, concept explanation, a worked example with expected behaviour and explanation, common mistakes, recommended practices, an independent exercise with expected-result guidance, a summary, and a two-question knowledge check with explanations. Every final project includes a scenario, requirements, minimum acceptance criteria, stretch goals, and submission guidance. Code blocks use horizontal overflow protection for narrow screens.
+
+The recommended learning path is presented in the Free Learning catalogue. The main path is HTML/CSS → JavaScript → Git/GitHub → TypeScript → React → Node.js. Parallel foundations cover Python → Data Structures and Algorithms, SQL, and C#/.NET. Catalogue discovery includes text search, category filters, and difficulty filters.
+
+Free Learning now uses the existing Academy LMS path with added native records for explicit free enrolment, persistent scored quiz attempts, lesson progress, completion recognition, and Duradata Academy Certificates of Completion. A passing lesson quiz marks that lesson complete; completing all published lessons records course completion and issues a non-accreditation completion certificate. Free enrolments also appear in the existing My Courses dashboard.
+
+Production content is installed by `npm run academy:install-free-courses`. It uses stable managed keys/slugs and deterministic nested identifiers, is safe to rerun, creates no users or organisations, does not delete data, and never runs the development seed. A course at the current managed version is preserved; a course touched by an administrator (`updatedById`) is also preserved rather than overwritten. Interrupted first-time installs remain resumable because the managed version is recorded only after all nested content is installed. Every production build runs the installer after migrations and then runs `npm run academy:verify-free-courses`; the build fails before release unless all ten records are published/free and their lesson, example, exercise, and question counts pass.
+
+Research used only for learning progression, terminology, recommended practices, and source records: W3Schools HTML/CSS/JavaScript/SQL, TutorialsPoint Python and general programming references, MDN Learn and accessibility guidance, freeCodeCamp curricula, the official Python tutorial, TypeScript Handbook, React Learn, Node.js Learn, PostgreSQL tutorial, Pro Git and GitHub documentation, Microsoft Learn for C#/.NET, and OWASP API Security. All Duradata lesson prose, examples, exercises, quiz questions, explanations, and project briefs were independently written; no external tutorial text or proprietary assessment was copied.
+
+Local verification for this library: Prisma schema validation **passed**; generated Prisma client **passed**; TypeScript **passed**; optimized Next.js build **passed**; targeted ESLint **passed**; unit tests **13/13 passed**, including library structure, exact course names, per-course assessment minimums, exercise/project completeness, and Node.js security constraints. The local MariaDB integration run was unavailable because the isolated MySQL service was stopped; the production build therefore performs both installation and read-back verification against the configured Academy database before publishing.
+
 ## Verification completed
 
 All verification used the disposable local MySQL database `duradata_academy_test`; no original or production database was contacted.

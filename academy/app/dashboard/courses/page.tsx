@@ -14,7 +14,10 @@ export default async function DashboardCoursesPage() {
   const auth = await requireRoleForPage("student")
   if (!auth) redirect("/")
 
-  const courses = (await getStudentCourseSummaries(auth.user.id)).map((course) => ({ ...course, percent: course.progressPercent }))
+  const paidCourses = (await getStudentCourseSummaries(auth.user.id)).map((course) => ({ ...course, percent: course.progressPercent, href: `/learn/${course.id}` }))
+  const freeEnrollments = await prisma.tutorialEnrollment.findMany({ where: { userId: auth.user.id }, include: { tutorial: { include: { sections: { include: { lessons: { where: { isPublished: true }, orderBy: { order: "asc" }, select: { slug: true } } }, orderBy: { order: "asc" } } } } }, orderBy: { enrolledAt: "desc" } })
+  const freeCourses = await Promise.all(freeEnrollments.map(async ({ tutorial }) => { const lessons = tutorial.sections.flatMap((section) => section.lessons); const completedLessons = await prisma.tutorialProgress.count({ where: { userId: auth.user.id, tutorialId: tutorial.id, completedAt: { not: null } } }); return { id: tutorial.id, title: tutorial.title, instructorName: tutorial.ownerName, percent: lessons.length ? Math.round(completedLessons / lessons.length * 100) : 0, completedLessons, totalLessons: lessons.length, href: lessons[0] ? `/learn/${tutorial.slug}/${lessons[0].slug}` : `/learn/${tutorial.slug}` } }))
+  const courses = [...freeCourses, ...paidCourses]
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,7 +32,7 @@ export default async function DashboardCoursesPage() {
                 <p className="text-sm text-muted-foreground">All courses you are enrolled in</p>
               </div>
               <Button asChild variant="outline">
-                <Link href="/courses">Browse Courses</Link>
+                <Link href="/learn">Browse Free Learning</Link>
               </Button>
             </div>
 
@@ -47,7 +50,7 @@ export default async function DashboardCoursesPage() {
                         <p className="mt-1 text-sm text-muted-foreground">by {course.instructorName}</p>
                       </div>
                       <Button asChild size="sm">
-                        <Link href={`/learn/${course.id}`}>Continue</Link>
+                        <Link href={course.href}>Continue</Link>
                       </Button>
                     </div>
 
