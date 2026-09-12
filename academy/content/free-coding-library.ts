@@ -264,3 +264,7 @@ export function buildFreeCodingLibrary() {
 
 export const FREE_CODING_LIBRARY_VERSION = 1
 export const FREE_CODING_LIBRARY_MANAGED_PREFIX = "duradata-free-coding"
+export const FREE_CODING_LIBRARY_SLUGS = freeCodingCourseBlueprints.map((course) => course.slug)
+export const FREE_CODING_LIBRARY_MANAGED_KEYS = FREE_CODING_LIBRARY_SLUGS.map(
+  (slug) => `${FREE_CODING_LIBRARY_MANAGED_PREFIX}:${slug}`,
+)

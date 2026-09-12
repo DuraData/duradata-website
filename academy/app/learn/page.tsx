@@ -1,13 +1,14 @@
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { FreeLearningCatalogue } from "@/components/tutorials/free-learning-catalogue"
+import { FREE_CODING_LIBRARY_SLUGS } from "@/content/free-coding-library"
 import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
 
 export default async function FreeLearningPage() {
   const tutorials = await prisma.tutorial.findMany({
-    where: { status: "published", courseType: "FREE", managedKey: { startsWith: "duradata-free-coding:" } },
+    where: { status: "published", courseType: "FREE", slug: { in: FREE_CODING_LIBRARY_SLUGS } },
     include: { sections: { include: { _count: { select: { lessons: { where: { isPublished: true } } } } } } },
     orderBy: [{ publishedAt: "desc" }, { title: "asc" }],
   })

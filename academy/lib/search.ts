@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { getAcademyFeatures } from "@/lib/academy-features"
+import { FREE_CODING_LIBRARY_SLUGS } from "@/content/free-coding-library"
 
 export type SearchResult = { id: string; type: "Course" | "Subject" | "Tutorial" | "Tutorial Lesson"; title: string; description: string; href: string }
 
@@ -11,8 +12,8 @@ export async function searchPublishedContent(rawQuery: string): Promise<SearchRe
   const [courses, subjects, tutorials, lessons] = await Promise.all([
     features.corporateLearningEnabled ? prisma.course.findMany({ where: { status: "approved", OR: [{ title: contains }, { description: contains }] }, select: { id: true, title: true, description: true }, take: 8 }) : [],
     features.academicLearningEnabled ? prisma.subjectPackage.findMany({ where: { status: "approved", OR: [{ title: contains }, { subject: contains }, { description: contains }] }, select: { id: true, title: true, description: true }, take: 8 }) : [],
-    features.freeLearningEnabled ? prisma.tutorial.findMany({ where: { status: "published", courseType: "FREE", managedKey: { startsWith: "duradata-free-coding:" }, OR: [{ title: contains }, { shortDescription: contains }, { description: contains }] }, select: { id: true, slug: true, title: true, shortDescription: true }, take: 10 }) : [],
-    features.freeLearningEnabled ? prisma.tutorialLesson.findMany({ where: { isPublished: true, section: { tutorial: { status: "published", courseType: "FREE", managedKey: { startsWith: "duradata-free-coding:" } } }, OR: [{ title: contains }, { summary: contains }] }, select: { id: true, slug: true, title: true, summary: true, section: { select: { tutorial: { select: { slug: true, title: true } } } } }, take: 20 }) : [],
+    features.freeLearningEnabled ? prisma.tutorial.findMany({ where: { status: "published", courseType: "FREE", slug: { in: FREE_CODING_LIBRARY_SLUGS }, OR: [{ title: contains }, { shortDescription: contains }, { description: contains }] }, select: { id: true, slug: true, title: true, shortDescription: true }, take: 10 }) : [],
+    features.freeLearningEnabled ? prisma.tutorialLesson.findMany({ where: { isPublished: true, section: { tutorial: { status: "published", courseType: "FREE", slug: { in: FREE_CODING_LIBRARY_SLUGS } } }, OR: [{ title: contains }, { summary: contains }] }, select: { id: true, slug: true, title: true, summary: true, section: { select: { tutorial: { select: { slug: true, title: true } } } } }, take: 20 }) : [],
   ])
   return [
     ...courses.map((item) => ({ id: item.id, type: "Course" as const, title: item.title, description: item.description, href: `/course/${item.id}` })),
