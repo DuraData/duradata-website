@@ -56,38 +56,37 @@ Free Learning now uses the existing Academy LMS path with added native records f
 
 Production content is installed by `npm run academy:install-free-courses`. It uses stable managed keys/slugs and deterministic nested identifiers, is safe to rerun, creates no users or organisations, does not delete data, and never runs the development seed. A course at the current managed version is preserved; a course touched by an administrator (`updatedById`) is also preserved rather than overwritten. Interrupted first-time installs remain resumable because the managed version is recorded only after all nested content is installed. Every production build runs the installer after migrations and then runs `npm run academy:verify-free-courses`; the build fails before release unless all ten records are published/free and their lesson, example, exercise, and question counts pass.
 
-Research used only for learning progression, terminology, recommended practices, and source records: W3Schools HTML/CSS/JavaScript/SQL, TutorialsPoint Python and general programming references, MDN Learn and accessibility guidance, freeCodeCamp curricula, the official Python tutorial, TypeScript Handbook, React Learn, Node.js Learn, PostgreSQL tutorial, Pro Git and GitHub documentation, Microsoft Learn for C#/.NET, and OWASP API Security. All Duradata lesson prose, examples, exercises, quiz questions, explanations, and project briefs were independently written; no external tutorial text or proprietary assessment was copied.
+Research used only for learning progression, terminology, recommended practices, and source records: [W3Schools](https://www.w3schools.com/), [TutorialsPoint](https://www.tutorialspoint.com/), [MDN Learn](https://developer.mozilla.org/en-US/docs/Learn_web_development), [freeCodeCamp](https://www.freecodecamp.org/learn/), the [official Python tutorial](https://docs.python.org/3/tutorial/), [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/), [React Learn](https://react.dev/learn), [Node.js Learn](https://nodejs.org/en/learn/getting-started/introduction-to-nodejs), [PostgreSQL tutorial](https://www.postgresql.org/docs/current/tutorial.html), [Pro Git](https://git-scm.com/book/en/v2) and GitHub documentation, [Microsoft Learn for C#/.NET](https://learn.microsoft.com/en-us/dotnet/csharp/), and [OWASP API Security](https://owasp.org/www-project-api-security/). All Duradata lesson prose, examples, exercises, quiz questions, explanations, and project briefs were independently written; no external tutorial text or proprietary assessment was copied.
 
 Local verification for this library: Prisma schema validation **passed**; generated Prisma client **passed**; TypeScript **passed**; optimized Next.js build **passed**; targeted ESLint **passed**; unit tests **13/13 passed**, including library structure, exact course names, per-course assessment minimums, exercise/project completeness, and Node.js security constraints. The local MariaDB integration run was unavailable because the isolated MySQL service was stopped; the production build therefore performs both installation and read-back verification against the configured Academy database before publishing.
 
 ## Verification completed
 
-All verification used the disposable local MySQL database `duradata_academy_test`; no original or production database was contacted.
+Local safety and structure checks passed before deployment:
 
-- clean baseline migration and E2E fixture seed: **passed**
+- Prisma schema validation and client generation: **passed**
 - optimized Next.js production build: **passed**
-- ESLint: **passed**
-- TypeScript type-check: **passed**
-- unit tests: **8/8 passed**
-- Playwright E2E tests: **47/47 passed**
+- targeted ESLint and TypeScript type-check: **passed**
+- unit tests: **13/13 passed**
+- existing Playwright E2E suite: **47/47 passed** against the disposable `duradata_academy_test` database
 - feature matrix: all eight Academic/Corporate/Free combinations passed page, API, and navigation checks
 - host routing, four-role authentication/RBAC, password reset, course approval, enrollment, organizations/assignments, Free Learning, mocked Paynow fulfillment, idempotency, and upload security: **passed**
-- visual browser QA: main site, Academy home, mobile layouts, Admin Settings, and Organizations inspected; no console errors or horizontal overflow observed
 
-`npm audit` currently reports 7 transitive advisories (5 high, 2 moderate) through Prisma 7.10.0's pinned `mysql2`/`deepmerge-ts` packages and `@prisma/adapter-mariadb`'s pinned MariaDB connector. npm reports no compatible fix for the runtime connector path at this version. The earlier critical Next.js advisory was removed by upgrading to Next.js 16.3.4. Recheck and upgrade Prisma as soon as it publishes compatible patched transitive versions; production MySQL should require validated TLS and use the supplied CA option where applicable.
+Production read-back verification ran inside the Hostinger build against the dedicated Academy MySQL database. It confirmed **10 published free courses, 215 sections, 215 published lessons, 215 worked examples, 215 exercises, and 430 quiz questions**. The installer rerun reported every course as `preserved`, demonstrating that the production install is idempotent.
 
-## Hostinger handoff
+Live browser verification passed for `https://duradata.co.za`, `https://academy.duradata.co.za/learn`, all ten course overview URLs, the first HTML lesson, catalogue text search for Python/HTML/JavaScript/SQL/React/C#/Git, the intermediate difficulty filter, and the `/courses` corporate-training fallback. At a 390 × 844 mobile viewport, all ten cards remained available with no horizontal overflow. The browser console reported no errors. The public lesson correctly permits reading while asking a signed-out learner to log in before enrolment, quiz submission, saved progress, or certificate issuance; browser QA did not create or mutate a production learner account.
 
-No Hostinger, DNS, database, storage, email, payment, domain, or other online resource was created or changed.
+`npm audit` currently reports 6 advisories (5 high, 1 moderate). Do not apply `npm audit fix --force` without a separate compatibility review. The earlier critical Next.js advisory was removed by upgrading to Next.js 16.3.4; recheck framework and Prisma connector updates regularly, require validated production MySQL TLS, and use the supplied CA option where applicable.
 
-The remaining production actions are external and require the owner's explicit approval/action:
+## Hostinger production deployment
 
-1. Create the new dedicated MySQL database and credentials in Hostinger. Do not reuse the LMS database.
-2. Add the production values listed in `academy/.env.example` to the existing Hostinger Node.js application's environment.
-3. Run `npm run db:migrate:deploy` against that new database.
-4. Configure the existing Hostinger application to build with `npm run build` and start with `npm run start` from the repository root.
-5. Bind `academy.duradata.co.za` to the same Node.js application as `duradata.co.za`, then add/update the required DNS record.
-6. Supply S3-compatible storage, SMTP, Paynow, and strong secret values before enabling the corresponding production flows.
-7. Verify both hosts over HTTPS, the host-only Academy cookie, outbound email, real storage, and a controlled real Paynow transaction.
+Hostinger is connected to GitHub branch `main` and deploys pushes automatically. Deployment `42cdbaa3` completed on **2026-09-12 at 09:57 Africa/Johannesburg** using Node.js 24.x. It applied no pending migrations, preserved the already-installed version-1 library, passed production database verification and TypeScript compilation, built 75 Next.js routes, and prepared the flattened standalone bundle.
 
-Do not run `npm run db:seed` in production; it intentionally creates development/reference content.
+- Main website: `https://duradata.co.za`
+- Academy: `https://academy.duradata.co.za`
+- Free catalogue: `https://academy.duradata.co.za/learn`
+- Main-site Academy links: open the Academy origin in a new tab with `target="_blank"` and `rel="noopener noreferrer"`
+- Current production course library: **10/10 available**
+- Original LMS repository/database: **not modified**
+
+Do not run `npm run db:seed` in production; it intentionally creates development/reference content. Future managed-library revisions should increment `FREE_CODING_LIBRARY_VERSION`, retain stable course slugs, run the production installer, and allow the read-back verifier to block promotion if content is incomplete.
