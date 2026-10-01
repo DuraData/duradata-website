@@ -35,7 +35,7 @@ export default function Training() {
     {
       category: 'Microsoft Excel',
       title: 'Excel Analytics Academy',
-      duration: '3 Days',
+      duration: '5 Days',
       level: 'All Levels',
       topics: ['Beginner Fundamentals', 'Intermediate Lookup & Pivot Tables', 'Advanced Formulaic Analysis (LAMBDA, Power Query)']
     },
