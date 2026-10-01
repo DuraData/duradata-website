@@ -1,4 +1,4 @@
-import { copyFile, cp, mkdir, rm } from "node:fs/promises"
+import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -30,6 +30,15 @@ await cp(path.join(academyRoot, "public"), path.join(standaloneRoot, "public"), 
   recursive: true,
   force: true,
 })
+
+// Next's standalone output inherits the monorepo root package.json, whose
+// `type: module` makes Node interpret the generated CommonJS server.js as ESM.
+// Hostinger launches that file directly, so make the runtime module type
+// explicit without discarding the rest of Next's generated package metadata.
+const standalonePackagePath = path.join(standaloneRoot, "package.json")
+const standalonePackage = JSON.parse(await readFile(standalonePackagePath, "utf8"))
+standalonePackage.type = "commonjs"
+await writeFile(standalonePackagePath, `${JSON.stringify(standalonePackage, null, 2)}\n`)
 
 // Avoid leaving a second server entrypoint that Hostinger could package
 // without the sibling standalone node_modules directory.
