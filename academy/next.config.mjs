@@ -13,6 +13,12 @@ const nextConfig = {
   // The post-build step flattens Next's monorepo layout into one deployable
   // root containing server.js and its traced node_modules.
   output: 'standalone',
+  experimental: {
+    // Hostinger exposes many logical CPUs but enforces a much lower OS thread
+    // limit. Keep page-data collection within that limit during deployment.
+    cpus: 2,
+    workerThreads: false,
+  },
   turbopack: {
     // This is an npm workspace (academy/ inside the duradata-website repo
     // root), and this app also imports ../../src directly (see
