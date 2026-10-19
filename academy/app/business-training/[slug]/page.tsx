@@ -5,6 +5,19 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import {
+  BookOpen,
+  BriefcaseBusiness,
+  CheckCircle2,
+  CircleHelp,
+  Clock3,
+  GraduationCap,
+  ListChecks,
+  MonitorUp,
+  Target,
+  Users,
+} from "lucide-react"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -80,7 +93,10 @@ export default async function BusinessTrainingDetailsPage({ params }: { params: 
                   <div className="grid gap-4 sm:grid-cols-3">
                     <Card className="shadow-sm">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-base">Duration</CardTitle>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Clock3 className="size-4 text-primary" aria-hidden="true" />
+                          Duration
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-muted-foreground">{program.duration}</p>
@@ -88,7 +104,10 @@ export default async function BusinessTrainingDetailsPage({ params }: { params: 
                     </Card>
                     <Card className="shadow-sm sm:col-span-2">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-base">Delivery Options</CardTitle>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <MonitorUp className="size-4 text-primary" aria-hidden="true" />
+                          Delivery Options
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-muted-foreground">{program.deliveryOptions.join(", ")}</p>
@@ -100,7 +119,10 @@ export default async function BusinessTrainingDetailsPage({ params }: { params: 
                 <div className="lg:col-span-2">
                   <Card className="shadow-sm">
                     <CardHeader>
-                      <CardTitle>Corporate Training Request</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <BriefcaseBusiness className="size-5 text-primary" aria-hidden="true" />
+                      Corporate Training Request
+                    </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <p className="text-sm text-muted-foreground">
@@ -120,7 +142,10 @@ export default async function BusinessTrainingDetailsPage({ params }: { params: 
               <div className="grid gap-6 lg:grid-cols-3">
                 <Card className="lg:col-span-2 shadow-sm">
                   <CardHeader>
-                    <CardTitle>Overview</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="size-5 text-primary" aria-hidden="true" />
+                      Overview
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm leading-6 text-muted-foreground">{program.overview}</p>
@@ -129,13 +154,17 @@ export default async function BusinessTrainingDetailsPage({ params }: { params: 
 
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle>Prerequisites</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <ListChecks className="size-5 text-primary" aria-hidden="true" />
+                      Prerequisites
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       {program.prerequisites.map((item) => (
-                        <li key={item} className="rounded-lg border border-border bg-muted/30 p-3">
-                          {item}
+                        <li key={item} className="flex gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                          <span>{item}</span>
                         </li>
                       ))}
                     </ul>
@@ -146,13 +175,17 @@ export default async function BusinessTrainingDetailsPage({ params }: { params: 
               <div className="grid gap-6 lg:grid-cols-2">
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle>Learning Outcomes</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="size-5 text-primary" aria-hidden="true" />
+                      Learning Outcomes
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
                       {program.learningOutcomes.map((item) => (
-                        <li key={item} className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                          {item}
+                        <li key={item} className="flex gap-3 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+                          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                          <span>{item}</span>
                         </li>
                       ))}
                     </ul>
@@ -161,7 +194,10 @@ export default async function BusinessTrainingDetailsPage({ params }: { params: 
 
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle>Who Should Attend</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="size-5 text-primary" aria-hidden="true" />
+                      Who Should Attend
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
@@ -177,31 +213,75 @@ export default async function BusinessTrainingDetailsPage({ params }: { params: 
 
               <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle>Detailed Course Curriculum / Syllabus</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="size-5 text-primary" aria-hidden="true" />
+                    Detailed Course Curriculum / Syllabus
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {program.curriculum.map((module, index) => (
-                      <div key={module} className="rounded-lg border border-border bg-muted/30 p-4">
-                        <p className="text-sm font-medium text-foreground">Module {index + 1}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">{module}</p>
-                      </div>
-                    ))}
-                  </div>
+                  {program.slug === "microsoft-excel-advanced" ? (
+                    <Accordion type="multiple" className="space-y-3">
+                      {program.curriculum.map((module, index) => {
+                        const separatorIndex = module.indexOf(":")
+                        const title = separatorIndex === -1 ? module : module.slice(0, separatorIndex)
+                        const details = separatorIndex === -1 ? "" : module.slice(separatorIndex + 1).trim()
+
+                        return (
+                          <AccordionItem
+                            key={module}
+                            value={`module-${index + 1}`}
+                            className="rounded-lg border border-border bg-muted/30 px-4"
+                          >
+                            <AccordionTrigger className="hover:no-underline">
+                              <span className="flex items-center gap-3">
+                                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                                  {index + 1}
+                                </span>
+                                <span>{title}</span>
+                              </span>
+                            </AccordionTrigger>
+                            <AccordionContent className="pl-11 pr-2 text-sm leading-6 text-muted-foreground">
+                              {details}
+                            </AccordionContent>
+                          </AccordionItem>
+                        )
+                      })}
+                    </Accordion>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                      {program.curriculum.map((module, index) => (
+                        <div key={module} className="rounded-lg border border-border bg-muted/30 p-4">
+                          <p className="text-sm font-medium text-foreground">Module {index + 1}</p>
+                          <p className="mt-2 text-sm text-muted-foreground">{module}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
               <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle>Frequently Asked Questions</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <CircleHelp className="size-5 text-primary" aria-hidden="true" />
+                    Frequently Asked Questions
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {program.faqs.map((faq) => (
-                    <div key={faq.question} className="rounded-lg border border-border bg-muted/30 p-4">
-                      <p className="text-sm font-medium text-foreground">{faq.question}</p>
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
-                    </div>
-                  ))}
+                <CardContent>
+                  <Accordion type="single" collapsible className="space-y-3">
+                    {program.faqs.map((faq, index) => (
+                      <AccordionItem
+                        key={faq.question}
+                        value={`faq-${index + 1}`}
+                        className="rounded-lg border border-border bg-muted/30 px-4"
+                      >
+                        <AccordionTrigger className="hover:no-underline">{faq.question}</AccordionTrigger>
+                        <AccordionContent className="pr-6 text-sm leading-6 text-muted-foreground">
+                          {faq.answer}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 </CardContent>
               </Card>
 
