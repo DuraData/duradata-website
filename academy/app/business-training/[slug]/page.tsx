@@ -219,44 +219,33 @@ export default async function BusinessTrainingDetailsPage({ params }: { params: 
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {program.slug === "microsoft-excel-advanced" ? (
-                    <Accordion type="multiple" className="space-y-3">
-                      {program.curriculum.map((module, index) => {
-                        const separatorIndex = module.indexOf(":")
-                        const title = separatorIndex === -1 ? module : module.slice(0, separatorIndex)
-                        const details = separatorIndex === -1 ? "" : module.slice(separatorIndex + 1).trim()
+                  <Accordion type="multiple" className="space-y-3">
+                    {program.curriculum.map((module, index) => {
+                      const separatorIndex = module.indexOf(":")
+                      const title = separatorIndex === -1 ? module : module.slice(0, separatorIndex)
+                      const details = separatorIndex === -1 ? "Select to view the module focus and learning activities." : module.slice(separatorIndex + 1).trim()
 
-                        return (
-                          <AccordionItem
-                            key={module}
-                            value={`module-${index + 1}`}
-                            className="rounded-lg border border-border bg-muted/30 px-4"
-                          >
-                            <AccordionTrigger className="hover:no-underline">
-                              <span className="flex items-center gap-3">
-                                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                                  {index + 1}
-                                </span>
-                                <span>{title}</span>
+                      return (
+                        <AccordionItem
+                          key={module}
+                          value={`module-${index + 1}`}
+                          className="rounded-lg border border-border bg-muted/30 px-4"
+                        >
+                          <AccordionTrigger className="hover:no-underline">
+                            <span className="flex items-center gap-3 text-left">
+                              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                                {index + 1}
                               </span>
-                            </AccordionTrigger>
-                            <AccordionContent className="pl-11 pr-2 text-sm leading-6 text-muted-foreground">
-                              {details}
-                            </AccordionContent>
-                          </AccordionItem>
-                        )
-                      })}
-                    </Accordion>
-                  ) : (
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                      {program.curriculum.map((module, index) => (
-                        <div key={module} className="rounded-lg border border-border bg-muted/30 p-4">
-                          <p className="text-sm font-medium text-foreground">Module {index + 1}</p>
-                          <p className="mt-2 text-sm text-muted-foreground">{module}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                              <span>{title}</span>
+                            </span>
+                          </AccordionTrigger>
+                          <AccordionContent className="pl-11 pr-2 text-sm leading-6 text-muted-foreground">
+                            {details}
+                          </AccordionContent>
+                        </AccordionItem>
+                      )
+                    })}
+                  </Accordion>
                 </CardContent>
               </Card>
 
