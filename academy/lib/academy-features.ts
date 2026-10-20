@@ -1,5 +1,4 @@
 import { unstable_noStore as noStore } from "next/cache"
-import { prisma } from "@/lib/prisma"
 
 export const ACADEMY_FEATURE_KEYS = {
   academic: "academicLearningEnabled",
@@ -22,6 +21,9 @@ export const DEFAULT_ACADEMY_FEATURES: AcademyFeatures = {
 export async function getAcademyFeatures(): Promise<AcademyFeatures> {
   noStore()
   try {
+    // Keep the marketing-only Hostinger middleware path independent from the
+    // Academy database. The client is loaded only for an Academy feature read.
+    const { prisma } = await import("@/lib/prisma")
     const rows = await prisma.platformSetting.findMany({
       where: { key: { in: Object.values(ACADEMY_FEATURE_KEYS) } },
       select: { key: true, value: true },
