@@ -1,0 +1,9 @@
+academy.duradata.co.za {
+    encode zstd gzip
+
+    reverse_proxy duradata-academy-web:3000 {
+        health_uri /api/health
+        health_interval 30s
+        health_timeout 5s
+    }
+}

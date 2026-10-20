@@ -1,0 +1,58 @@
+name: duradata-academy
+
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/onecom/Dockerfile
+      target: runtime
+    image: duradata-academy-web:${DURADATA_ACADEMY_RELEASE:-local}
+    restart: unless-stopped
+    env_file:
+      - /home/deploy/apps/duradata-academy/shared/app.env
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      private: {}
+      public_proxy:
+        aliases:
+          - duradata-academy-web
+
+  database-setup:
+    profiles:
+      - setup
+    build:
+      context: ../..
+      dockerfile: deploy/onecom/Dockerfile
+      target: database-jobs
+    image: duradata-academy-database-jobs:${DURADATA_ACADEMY_RELEASE:-local}
+    env_file:
+      - /home/deploy/apps/duradata-academy/shared/app.env
+    environment:
+      NODE_ENV: production
+    networks:
+      - private
+      # The database remains at Hostinger, so this one-shot container needs
+      # outbound connectivity. It publishes no port and has no proxy alias.
+      - public_proxy
+
+networks:
+  private:
+    internal: true
+  public_proxy:
+    external: true
+    name: public_proxy

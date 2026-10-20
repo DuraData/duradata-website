@@ -1,0 +1,16 @@
+.git
+.github
+.next
+academy/.next
+academy/node_modules
+node_modules
+tmp
+test-results
+playwright-report
+*.log
+.env
+.env.*
+academy/.env
+academy/.env.*
+!.env.example
+!academy/.env.example
