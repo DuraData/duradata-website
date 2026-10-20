@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && cross-env ACADEMY_DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build NEXT_PUBLIC_APP_URL=https://academy.duradata.co.za next build --webpack && node scripts/prepare-hostinger-build.mjs",
+    "build": "prisma generate && node scripts/build-application.mjs && node scripts/prepare-hostinger-build.mjs",
     "deploy:database": "prisma migrate deploy && npm run academy:install-free-courses && npm run academy:verify-free-courses",
     "start": "next start",
     "lint": "eslint .",
