@@ -80,6 +80,10 @@ An Academy administrator changes these under **Admin → Settings**. Enforcement
 
 The Duradata marketing website remains on Hostinger. Do not move `duradata.co.za` or `www.duradata.co.za` to the VPS. Only Duradata Academy is deployed to the one.com VPS and only `academy.duradata.co.za` is routed there.
 
+Hostinger sets `MARKETING_ONLY_DEPLOYMENT=true`. This prevents its marketing-only
+runtime from reading or validating the retired Academy database connection; the
+one.com Academy runtime must leave this flag unset.
+
 The VPS deployment is defined in `deploy/onecom/`. It runs Academy, a private PostgreSQL 18 container, and one-shot setup/data-migration jobs. No PostgreSQL port is published to the internet; the Academy web container and database communicate only over the Compose private network.
 
 The existing Hostinger Academy MySQL database is the migration source only. When Hostinger is reachable, use a read-only source account, freeze Academy writes, take a verified backup, and run `npm run db:migrate:mysql-to-postgres`. The transfer preserves all IDs and every table, then compares every source/target row count and checks all foreign-key relationships. Do not switch Academy traffic or DNS until this verification passes.

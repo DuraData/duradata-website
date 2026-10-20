@@ -40,3 +40,19 @@ test("an unencoded reserved character in the URL raises a clear configuration er
     process.env.ACADEMY_DATABASE_URL = previousUrl
   }
 })
+
+test("marketing-only deployments never parse the retired Academy database URL", () => {
+  const previousUrl = process.env.ACADEMY_DATABASE_URL
+  const previousMarketingOnly = process.env.MARKETING_ONLY_DEPLOYMENT
+  process.env.ACADEMY_DATABASE_URL = "mysql://retired-source.invalid/academy"
+  process.env.MARKETING_ONLY_DEPLOYMENT = "true"
+  try {
+    const options = postgresConnectionOptions()
+    assert.equal(options.connectionString, "postgresql://marketing-only:disabled@127.0.0.1:5432/disabled")
+  } finally {
+    if (previousUrl === undefined) delete process.env.ACADEMY_DATABASE_URL
+    else process.env.ACADEMY_DATABASE_URL = previousUrl
+    if (previousMarketingOnly === undefined) delete process.env.MARKETING_ONLY_DEPLOYMENT
+    else process.env.MARKETING_ONLY_DEPLOYMENT = previousMarketingOnly
+  }
+})

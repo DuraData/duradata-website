@@ -2,6 +2,10 @@ import type { PoolConfig } from "pg"
 import { isSafeE2ETestMode } from "@/lib/test-database"
 
 function configuredUrl() {
+  if (process.env.MARKETING_ONLY_DEPLOYMENT === "true") {
+    return new URL("postgresql://marketing-only:disabled@127.0.0.1:5432/disabled")
+  }
+
   const raw = process.env.ACADEMY_TEST_DATABASE_URL?.trim() || process.env.ACADEMY_DATABASE_URL?.trim()
   if (!raw) throw new Error("ACADEMY_DATABASE_URL is required")
 

@@ -7,6 +7,7 @@ function required(name: string) {
 }
 
 export function validateProductionEnvironment() {
+  if (process.env.MARKETING_ONLY_DEPLOYMENT === "true") return
   required("ACADEMY_DATABASE_URL")
   if (process.env.NODE_ENV !== "production") return
   // `next build` always sets NODE_ENV=production. Permit local E2E builds only
