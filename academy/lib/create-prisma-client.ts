@@ -1,7 +1,7 @@
-import { PrismaMariaDb } from "@prisma/adapter-mariadb"
+import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "./generated/prisma/client"
-import { mysqlConnectionOptions } from "./database-url"
+import { postgresConnectionOptions, postgresSchema } from "./database-url"
 
 export function createAcademyPrismaClient() {
-  return new PrismaClient({ adapter: new PrismaMariaDb(mysqlConnectionOptions()) })
+  return new PrismaClient({ adapter: new PrismaPg(postgresConnectionOptions(), { schema: postgresSchema() }) })
 }

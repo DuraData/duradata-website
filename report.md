@@ -4,7 +4,7 @@
 
 The Duradata repository is now the authoritative source for the existing marketing website and Duradata Academy. The Academy source is physically contained in `academy/`; it is not a submodule and has no build-time or runtime dependency on the original LMS repository.
 
-One Next.js production process serves both products. Requests for `duradata.co.za` render the existing marketing application, while requests for `academy.duradata.co.za` render Academy. Host isolation is enforced before routing, including API isolation.
+Production is now intentionally split by hostname. The existing `duradata.co.za` and `www.duradata.co.za` website remains on Hostinger. Only `academy.duradata.co.za` is deployed to the one.com VPS. The repository can still build both products, but the VPS Caddy route exposes only the Academy hostname.
 
 ## Source and database isolation
 
@@ -15,9 +15,19 @@ One Next.js production process serves both products. Requests for `duradata.co.z
 - Academy stored in this repository under `academy/`: **Yes**
 - Duradata repository authoritative for future Academy changes: **Yes**
 
-Academy now uses Prisma 7 with a MySQL provider and MariaDB driver adapter. Runtime code accepts only Academy-specific connection variables: `ACADEMY_DATABASE_URL`, optional `ACADEMY_DIRECT_DATABASE_URL` for migrations, and the guarded `ACADEMY_TEST_DATABASE_URL`. It does not read a generic database URL and must never use the original LMS database.
+Academy now uses Prisma 7 with PostgreSQL and the node-postgres driver adapter. Runtime code accepts only Academy-specific connection variables: `ACADEMY_DATABASE_URL`, optional `ACADEMY_DIRECT_DATABASE_URL` for migrations, and the guarded `ACADEMY_TEST_DATABASE_URL`. It does not read a generic database URL and must never use the original LMS database.
 
-The clean MySQL baseline is `academy/prisma/migrations/20260908000000_mysql_baseline/migration.sql`. It creates the full schema and persists the required feature defaults without inserting demo users or courses.
+The clean PostgreSQL baseline is `academy/prisma/migrations/20261020000000_postgresql_baseline/migration.sql`. It creates the full schema and persists the required feature defaults without inserting demo users or courses.
+
+## PostgreSQL VPS migration — 2026-10-20
+
+The live one.com PostgreSQL database was created and verified on 2026-10-20. It runs PostgreSQL **18.6** in the isolated `duradata-academy-db-1` container, uses the persistent `duradata-academy_postgres_data` volume, has restart policy `unless-stopped`, and reports healthy. The database is named `duradata_academy`; the clean baseline migration is applied, with **55 public tables** and the **5 required platform settings**. It publishes no host port and is reachable only from the Academy Compose network. It does not alter or depend on the VPS system PostgreSQL service or any other VPS application.
+
+`academy/scripts/migrate-mysql-to-postgres.ts` transfers every table from the Hostinger Academy MySQL database to PostgreSQL while preserving primary keys and relationships. It includes all corporate courses and Free Learning courses plus their sections, lessons, examples, exercises, quizzes, answers, users, enrolments, progress, certificates, organizations, assignments, and transactions. The transfer uses one consistent repeatable-read MySQL snapshot, is transactional on PostgreSQL, and fails on missing tables, mismatched row counts, or orphaned foreign keys.
+
+The production transfer completed on **2026-10-20** from `u950025577_duraacademy`. A compressed source backup was saved on the VPS before migration at `/home/deploy/apps/duradata-academy/shared/backups/hostinger-mysql-20261020T192139Z.sql.gz`. The final synchronization and independent verification checked **54 application tables** and confirmed that every source row and foreign-key relationship is present in PostgreSQL. The source stored the live Free Learning catalogue in the Tutorial models: **10 tutorials, 215 sections, 215 lessons, 215 code examples, 215 exercises, 215 quizzes, 430 questions, and 1,720 options**. The separate `Course` table contained no source rows, so no corporate-course rows were omitted.
+
+The Academy production release `e075b2bdc3ec` is running on the one.com VPS in the healthy `duradata-academy-web-1` container. Caddy routes only `academy.duradata.co.za` to that container; PostgreSQL remains private to the Academy Compose network. Hostinger continues to host the main `duradata.co.za` website. In Hostinger DNS, the Academy hostname now points to the VPS hostname `vps-5713.onecom-cloud.one`, and `www` is configured as a CNAME to `duradata.co.za` so the main site remains on Hostinger.
 
 ## Functional implementation
 
@@ -58,11 +68,11 @@ Production content is installed by `npm run academy:install-free-courses`. It us
 
 Research used only for learning progression, terminology, recommended practices, and source records: [W3Schools](https://www.w3schools.com/), [TutorialsPoint](https://www.tutorialspoint.com/), [MDN Learn](https://developer.mozilla.org/en-US/docs/Learn_web_development), [freeCodeCamp](https://www.freecodecamp.org/learn/), the [official Python tutorial](https://docs.python.org/3/tutorial/), [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/), [React Learn](https://react.dev/learn), [Node.js Learn](https://nodejs.org/en/learn/getting-started/introduction-to-nodejs), [PostgreSQL tutorial](https://www.postgresql.org/docs/current/tutorial.html), [Pro Git](https://git-scm.com/book/en/v2) and GitHub documentation, [Microsoft Learn for C#/.NET](https://learn.microsoft.com/en-us/dotnet/csharp/), and [OWASP API Security](https://owasp.org/www-project-api-security/). All Duradata lesson prose, examples, exercises, quiz questions, explanations, and project briefs were independently written; no external tutorial text or proprietary assessment was copied.
 
-Local verification for this library: Prisma schema validation **passed**; generated Prisma client **passed**; TypeScript **passed**; optimized Next.js build **passed**; targeted ESLint **passed**; unit tests **16/16 passed**, including library structure, exact course names, per-course assessment minimums, exercise/project completeness, Node.js security constraints, list-query bounds, whitelisted sorting/filtering, and pagination boundaries. The local MariaDB integration run was unavailable because the isolated MySQL service could not be started by this Windows session; the production build therefore performs both installation and read-back verification against the configured Academy database before publishing.
+Current PostgreSQL verification: Prisma schema validation **passed**; generated Prisma client **passed**; TypeScript **passed**; optimized Next.js build **passed**; unit tests **17/17 passed**; the PostgreSQL baseline applied cleanly; and the E2E seed plus the complete managed library installed locally with **10 courses, 215 lessons, and 430 questions**. The live VPS schema was then independently applied and queried successfully.
 
 ## Search, filter, sort, and pagination audit
 
-The growing Academy collections now query MySQL on the server with validated `page`, `pageSize`, search, filter, sort field, and sort direction parameters. Table views use 10/25/50/100 row sizes; public catalogues use 12/24/48. Search or filter changes reset the page, URL parameters are the source of truth, counts reflect the complete filtered result, and page controls are accessible and windowed for large page counts. Authentication, role, instructor ownership, learner identity, and organization scope remain mandatory `AND` predicates around user-selected filters.
+The growing Academy collections now query PostgreSQL on the server with validated `page`, `pageSize`, search, filter, sort field, and sort direction parameters. Table views use 10/25/50/100 row sizes; public catalogues use 12/24/48. Search or filter changes reset the page, URL parameters are the source of truth, counts reflect the complete filtered result, and page controls are accessible and windowed for large page counts. Authentication, role, instructor ownership, learner identity, and organization scope remain mandatory `AND` predicates around user-selected filters.
 
 | Area | Server search and filters | Sorts | Pagination |
 | --- | --- | --- | --- |
@@ -92,18 +102,35 @@ Local safety and structure checks passed before deployment:
 - Prisma schema validation and client generation: **passed**
 - optimized Next.js production build: **passed**
 - targeted ESLint and TypeScript type-check: **passed**
-- unit tests: **13/13 passed**
+- unit tests: **17/17 passed**
 - established Playwright E2E baseline: **47/47 passed** against the disposable `duradata_academy_test` database before this release; the suite now discovers **49 tests**, including Free Learning plus Admin Courses, Users, Organizations, and Enrollments list navigation. The current Windows session could not start the isolated MySQL service, so the two new browser cases were verified against production after deployment without mutating live data.
 - feature matrix: all eight Academic/Corporate/Free combinations passed page, API, and navigation checks
 - host routing, four-role authentication/RBAC, password reset, course approval, enrollment, organizations/assignments, Free Learning, mocked Paynow fulfillment, idempotency, and upload security: **passed**
 
-Production read-back verification ran inside the Hostinger build against the dedicated Academy MySQL database. It confirmed **10 published free courses, 215 sections, 215 published lessons, 215 worked examples, 215 exercises, and 430 quiz questions**. The installer rerun reported every course as `preserved`, demonstrating that the production install is idempotent.
+The former Hostinger production read-back verified **10 published free courses, 215 sections, 215 published lessons, 215 worked examples, 215 exercises, and 430 quiz questions**. The one.com cutover migration subsequently reproduced every one of those records in PostgreSQL, plus all remaining source tables, and the final verifier passed after the last synchronization.
 
 Live browser verification passed for `https://duradata.co.za`, `https://academy.duradata.co.za/learn`, all ten course overview URLs, the first HTML lesson, catalogue text search for Python/HTML/JavaScript/SQL/React/C#/Git, the intermediate difficulty filter, and the `/courses` corporate-training fallback. At a 390 × 844 mobile viewport, all ten cards remained available with no horizontal overflow. The browser console reported no errors. The public lesson correctly permits reading while asking a signed-out learner to log in before enrolment, quiz submission, saved progress, or certificate issuance; browser QA did not create or mutate a production learner account.
 
-`npm audit` currently reports 6 advisories (5 high, 1 moderate). Do not apply `npm audit fix --force` without a separate compatibility review. The earlier critical Next.js advisory was removed by upgrading to Next.js 16.3.4; recheck framework and Prisma connector updates regularly, require validated production MySQL TLS, and use the supplied CA option where applicable.
+Do not apply `npm audit fix --force` without a separate compatibility review. Recheck framework and Prisma/PostgreSQL connector updates regularly, require validated TLS for any non-private PostgreSQL connection, and use the supplied CA option where applicable.
 
-## Hostinger production deployment
+## Current one.com Academy deployment — 2026-10-20
+
+- Release: `e075b2bdc3ec`
+- Web container: `duradata-academy-web-1` — **healthy**
+- PostgreSQL container: `duradata-academy-db-1` — **healthy**
+- PostgreSQL exposure: private Compose network only; no published database port
+- Reverse proxy: Caddy route for `academy.duradata.co.za` only
+- Data migration: **passed**, followed by a separate **54-table** verification
+- Production build: **passed**, generating all **75 pages**
+- TypeScript: **passed**
+- Unit tests: **17/17 passed**
+- Main website location: Hostinger, unchanged
+- `www.duradata.co.za`: CNAME to `duradata.co.za` in accordance with Hostinger's web-app guidance
+- `academy.duradata.co.za`: Hostinger ALIAS to `vps-5713.onecom-cloud.one` (`85.190.97.125`)
+
+Hostinger accepted both DNS edits, but its authoritative ALIAS continued to flatten `academy.duradata.co.za` to the previous Hostinger origin after the full cache window. Completing the cutover therefore requires detaching the obsolete Hostinger Academy parked-domain association and replacing its ALIAS with a direct A record to `85.190.97.125`. Caddy is configured to obtain the Academy TLS certificate automatically as soon as public DNS reaches the VPS. The corrected `www` CNAME has propagated, but Hostinger's origin still returns its platform-level HTTP 503 for `www` while the apex returns HTTP 200. No main-site DNS record was pointed to the VPS.
+
+## Historical Hostinger Academy deployment
 
 Hostinger is connected to GitHub branch `main` and deploys pushes automatically. The original library deployment `42cdbaa3` completed on **2026-09-12 at 09:57 Africa/Johannesburg** using Node.js 24.x. The growing-list release was delivered by `cab0e13` with production MySQL compatibility hardening in `e45bdf0`, `5555d7c`, and final application commit `c93b325`. Hostinger marked `c93b325` **Completed / Current** on **2026-09-12 at 12:08 Africa/Johannesburg**. The release applied migration `20260912110000_add_list_query_indexes`, retained the managed Free Learning library, passed production database verification and TypeScript compilation, and built the same 75-route standalone application.
 

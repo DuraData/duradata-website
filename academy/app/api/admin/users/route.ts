@@ -2,7 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery, parseOptionalEnum, parseOptionalUuid } from "@/lib/list-query"
-import { mysqlContainsIds } from "@/lib/mysql-search"
+import { postgresContainsIds } from "@/lib/postgres-search"
 
 const adminUserListSelect = {
   id: true,
@@ -35,7 +35,7 @@ export async function GET(req: Request) {
   if (status) where.status = status
   if (organizationId) where.organizationMemberships = { some: { organizationId } }
   if (q) {
-    const [userIds, organizationIds] = await Promise.all([mysqlContainsIds("User", ["email", "name"], q), mysqlContainsIds("Organization", ["name"], q)])
+    const [userIds, organizationIds] = await Promise.all([postgresContainsIds("User", ["email", "name"], q), postgresContainsIds("Organization", ["name"], q)])
     where.OR = [
       { id: { in: userIds } },
       { organizationMemberships: { some: { organizationId: { in: organizationIds } } } },

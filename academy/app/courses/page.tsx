@@ -13,7 +13,7 @@ import { CATALOGUE_PAGE_SIZES, paginationMetadata, parseListQuery, sanitizeListQ
 import { UrlListPagination } from "@/components/shared/list-pagination"
 import { redirect } from "next/navigation"
 import { parseOptionalUuid } from "@/lib/list-query"
-import { mysqlContainsIds } from "@/lib/mysql-search"
+import { postgresContainsIds } from "@/lib/postgres-search"
 
 // Feature switches are administrative controls and must take effect immediately.
 export const dynamic = "force-dynamic"
@@ -52,7 +52,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: Prom
   const where: Record<string, unknown> = { status: "approved" }
   if (categoryId) where.categoryId = categoryId
   if (list.search) {
-    const [courseIds, instructorIds, categoryIds] = await Promise.all([mysqlContainsIds("Course", ["title", "description"], list.search), mysqlContainsIds("User", ["name"], list.search), mysqlContainsIds("Category", ["name"], list.search)])
+    const [courseIds, instructorIds, categoryIds] = await Promise.all([postgresContainsIds("Course", ["title", "description"], list.search), postgresContainsIds("User", ["name"], list.search), postgresContainsIds("Category", ["name"], list.search)])
     where.OR = [{ id: { in: courseIds } }, { instructorId: { in: instructorIds } }, { categoryId: { in: categoryIds } }]
   }
   const orderBy = list.sort === "popular" ? { enrollments: { _count: list.sortDirection } } : { [list.sort]: list.sortDirection }

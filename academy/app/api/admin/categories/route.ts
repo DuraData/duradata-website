@@ -2,7 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin, requireAdminOrInternalInstructor } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
-import { mysqlContainsIds } from "@/lib/mysql-search"
+import { postgresContainsIds } from "@/lib/postgres-search"
 
 const slugify = (input: string) =>
   input
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   } catch (error) {
     return listQueryErrorResponse(error)
   }
-  const where = list.search ? { id: { in: await mysqlContainsIds("Category", ["name", "slug"], list.search) } } : {}
+  const where = list.search ? { id: { in: await postgresContainsIds("Category", ["name", "slug"], list.search) } } : {}
   const [categories, totalItems] = await prisma.$transaction([
     prisma.category.findMany({ where, include: { _count: { select: { courses: true } } }, orderBy: { [list.sort]: list.sortDirection }, skip: list.skip, take: list.take }),
     prisma.category.count({ where }),

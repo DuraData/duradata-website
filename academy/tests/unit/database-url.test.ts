@@ -1,21 +1,19 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { mysqlConnectionOptions } from "../../lib/database-url"
+import { postgresConnectionOptions, postgresSchema } from "../../lib/database-url"
 
-test("production MySQL options enable TLS and parse connection details", () => {
+test("production PostgreSQL options enable verified TLS and parse pool details", () => {
   const previousUrl = process.env.ACADEMY_DATABASE_URL
   const previousNodeEnv = process.env.NODE_ENV
-  process.env.ACADEMY_DATABASE_URL = "mysql://user:pass@example.com:3307/academy?sslmode=require&connection_limit=4"
+  process.env.ACADEMY_DATABASE_URL = "postgresql://user:pass@example.com:5433/academy?schema=academy&sslmode=require&connection_limit=4&connect_timeout=7"
   Object.assign(process.env, { NODE_ENV: "production" })
   try {
-    const options = mysqlConnectionOptions()
-    assert.equal(options.host, "example.com")
-    assert.equal(options.port, 3307)
-    assert.equal(options.database, "academy")
-    assert.equal(options.connectionLimit, 4)
-    assert.equal(options.ssl, true)
-    assert.equal(options.charset, "utf8mb4")
-    assert.equal(options.collation, "utf8mb4_unicode_ci")
+    const options = postgresConnectionOptions()
+    assert.equal(options.max, 4)
+    assert.equal(options.connectionTimeoutMillis, 7_000)
+    assert.deepEqual(options.ssl, { rejectUnauthorized: true })
+    assert.equal(postgresSchema(), "academy")
+    assert.equal(options.connectionString, "postgresql://user:pass@example.com:5433/academy?sslmode=require")
   } finally {
     process.env.ACADEMY_DATABASE_URL = previousUrl
     Object.assign(process.env, { NODE_ENV: previousNodeEnv })
@@ -24,10 +22,10 @@ test("production MySQL options enable TLS and parse connection details", () => {
 
 test("connection options decode a percent-encoded password", () => {
   const previousUrl = process.env.ACADEMY_DATABASE_URL
-  process.env.ACADEMY_DATABASE_URL = "mysql://user:B%3F4puCMuUN@example.com:3306/academy"
+  process.env.ACADEMY_DATABASE_URL = "postgresql://user:p%3Fssword@example.com:5432/academy"
   try {
-    const options = mysqlConnectionOptions()
-    assert.equal(options.password, "B?4puCMuUN")
+    const options = postgresConnectionOptions()
+    assert.match(String(options.connectionString), /p%3Fssword/)
   } finally {
     process.env.ACADEMY_DATABASE_URL = previousUrl
   }
@@ -35,9 +33,9 @@ test("connection options decode a percent-encoded password", () => {
 
 test("an unencoded reserved character in the URL raises a clear configuration error", () => {
   const previousUrl = process.env.ACADEMY_DATABASE_URL
-  process.env.ACADEMY_DATABASE_URL = "mysql://user:B?4puCMuUN@example.com:3306/academy"
+  process.env.ACADEMY_DATABASE_URL = "postgresql://user:p?ssword@example.com:5432/academy"
   try {
-    assert.throws(() => mysqlConnectionOptions(), /percent-encoded/)
+    assert.throws(() => postgresConnectionOptions(), /percent-encoded/)
   } finally {
     process.env.ACADEMY_DATABASE_URL = previousUrl
   }

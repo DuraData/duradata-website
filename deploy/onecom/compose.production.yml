@@ -1,6 +1,22 @@
 name: duradata-academy
 
 services:
+  db:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    env_file:
+      - /home/deploy/apps/duradata-academy/shared/postgres.env
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - private
+
   web:
     build:
       context: ../..
@@ -14,6 +30,9 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: "3000"
+    depends_on:
+      db:
+        condition: service_healthy
     expose:
       - "3000"
     healthcheck:
@@ -21,7 +40,7 @@ services:
         - CMD
         - node
         - -e
-        - "fetch('http://127.0.0.1:3000/api/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+        - "fetch('http://127.0.0.1:3000/api/health', { headers: { 'x-forwarded-host': 'academy.duradata.co.za', 'x-forwarded-proto': 'https' } }).then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
       interval: 15s
       timeout: 5s
       retries: 12
@@ -44,10 +63,32 @@ services:
       - /home/deploy/apps/duradata-academy/shared/app.env
     environment:
       NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - private
-      # The database remains at Hostinger, so this one-shot container needs
-      # outbound connectivity. It publishes no port and has no proxy alias.
+
+  data-migrate:
+    profiles:
+      - migration
+    build:
+      context: ../..
+      dockerfile: deploy/onecom/Dockerfile
+      target: database-jobs
+    image: duradata-academy-database-jobs:${DURADATA_ACADEMY_RELEASE:-local}
+    env_file:
+      - /home/deploy/apps/duradata-academy/shared/app.env
+      - /home/deploy/apps/duradata-academy/shared/migration.env
+    environment:
+      NODE_ENV: production
+    command: ["npm", "run", "db:migrate:mysql-to-postgres"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - private
+      # Temporary outbound path to the read-only Hostinger MySQL source.
       - public_proxy
 
 networks:
@@ -56,3 +97,6 @@ networks:
   public_proxy:
     external: true
     name: public_proxy
+
+volumes:
+  postgres_data:

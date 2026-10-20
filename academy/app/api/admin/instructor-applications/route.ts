@@ -2,7 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
-import { mysqlContainsIds } from "@/lib/mysql-search"
+import { postgresContainsIds } from "@/lib/postgres-search"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   const where: Record<string, unknown> = {}
   if (status && ["pending", "approved", "rejected"].includes(status)) where.status = status
   if (q) {
-    const [applicationIds, userIds] = await Promise.all([mysqlContainsIds("InstructorApplication", ["expertise"], q), mysqlContainsIds("User", ["name", "email"], q)])
+    const [applicationIds, userIds] = await Promise.all([postgresContainsIds("InstructorApplication", ["expertise"], q), postgresContainsIds("User", ["name", "email"], q)])
     where.OR = [{ id: { in: applicationIds } }, { userId: { in: userIds } }]
   }
 

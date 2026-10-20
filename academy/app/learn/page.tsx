@@ -4,7 +4,7 @@ import { FreeLearningCatalogue } from "@/components/tutorials/free-learning-cata
 import { FREE_CODING_LIBRARY_SLUGS } from "@/content/free-coding-library"
 import { CATALOGUE_PAGE_SIZES, paginationMetadata, parseListQuery, sanitizeListQueryParams } from "@/lib/list-query"
 import { prisma } from "@/lib/prisma"
-import { mysqlContainsIds } from "@/lib/mysql-search"
+import { postgresContainsIds } from "@/lib/postgres-search"
 import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
@@ -23,7 +23,7 @@ export default async function FreeLearningPage({ searchParams }: { searchParams:
   if (difficulty && ["beginner", "intermediate", "advanced"].includes(difficulty)) where.difficulty = difficulty
   if (category) where.category = category
   if (list.search) {
-    const matchingIds = await mysqlContainsIds("Tutorial", ["title", "shortDescription", "description", "category"], list.search)
+    const matchingIds = await postgresContainsIds("Tutorial", ["title", "shortDescription", "description", "category"], list.search)
     where.OR = [
       { id: { in: matchingIds } },
       ...(["beginner", "intermediate", "advanced"].includes(list.search.toLowerCase()) ? [{ difficulty: list.search.toLowerCase() }] : []),

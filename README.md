@@ -1,14 +1,13 @@
 # Duradata website and Duradata Academy
 
-This repository is the authoritative source for both products. One Next.js application and one production process serve two hosts:
+This repository is the authoritative source for both products, with separate production hosting:
 
 ```text
-duradata.co.za ───────────┐
-                         ├─ one Duradata build and deployment
-academy.duradata.co.za ──┘
+duradata.co.za          → existing Hostinger website deployment
+academy.duradata.co.za  → isolated one.com VPS Academy deployment
 ```
 
-The existing React marketing site remains in `src/` and is rendered by the shared runtime on the main host. The full-stack Academy lives in `academy/`. Host-aware middleware sends main-domain pages to the marketing shell and Academy-domain pages to the LMS; `/courses` on the main domain therefore never exposes Academy.
+The existing React marketing site remains in `src/` and stays on Hostinger. The full-stack Academy lives in `academy/` and is deployed to the VPS. Host-aware routing remains in the codebase for local development and isolation, but the VPS proxy binds only the Academy hostname.
 
 ## Academy source ownership
 
@@ -18,7 +17,7 @@ The initial Academy code was physically imported from the read-only upstream LMS
 
 - Node.js 20 or newer (Node.js 22 or 24 is recommended on Hostinger)
 - npm
-- a new, dedicated MySQL 8 database for Duradata Academy
+- a dedicated PostgreSQL 18 database for Duradata Academy on the one.com VPS
 - S3-compatible durable object storage for production uploads
 - SMTP and Paynow credentials when those production features are enabled
 
@@ -73,14 +72,14 @@ The persisted defaults are:
 
 An Academy administrator changes these under **Admin → Settings**. Enforcement is applied to navigation, pages, direct routes, discovery, management routes, enrolment/checkout, and APIs. If the settings database is unavailable, mode checks fail closed.
 
-## Hostinger deployment
+## Split production deployment
 
-Use the existing Hostinger deployment as one Node.js web application connected to this repository. Configure the repository root as the application root, npm as the package manager, `npm run build` as the build command, `npm run start` as the start command, and a supported Node.js version matching `package.json`.
+The Duradata marketing website remains on Hostinger. Do not move `duradata.co.za` or `www.duradata.co.za` to the VPS. Only Duradata Academy is deployed to the one.com VPS and only `academy.duradata.co.za` is routed there.
 
-Before the application starts, run `npm run db:migrate:deploy` against the new Academy MySQL database. Add every production value from `academy/.env.example` in the Hostinger Node.js environment-variable panel; do not upload or commit a populated environment file.
+The VPS deployment is defined in `deploy/onecom/`. It runs Academy, a private PostgreSQL 18 container, and one-shot setup/data-migration jobs. No PostgreSQL port is published to the internet; the Academy web container and database communicate only over the Compose private network.
 
-Both `duradata.co.za` (and the existing `www` canonical policy) and `academy.duradata.co.za` must route to this same Node.js application. In hPanel, attach the Academy subdomain as a domain/alias of the existing application and point its DNS to the same Hostinger target. Do not create a second application. If the current Hostinger product does not expose multiple-domain aliases, use its supported domain-alias/reverse-proxy facility or ask Hostinger support to bind the additional host to the existing app.
+The existing Hostinger Academy MySQL database is the migration source only. When Hostinger is reachable, use a read-only source account, freeze Academy writes, take a verified backup, and run `npm run db:migrate:mysql-to-postgres`. The transfer preserves all IDs and every table, then compares every source/target row count and checks all foreign-key relationships. Do not switch Academy traffic or DNS until this verification passes.
 
-Those domain, DNS, database, storage, and secret changes are external actions and are intentionally not performed by this repository change. After configuring them, verify all four acceptance URLs over HTTPS and confirm the Academy session cookie remains host-only.
+See `deploy/onecom/README.md` for the staged database, migration, cutover, backup, and rollback procedure. Hostinger website configuration is intentionally not changed by the Academy VPS deployment.
 
 See `academy/.env.example`, `academy/README.md`, and `report.md` for the operational detail and verification record.

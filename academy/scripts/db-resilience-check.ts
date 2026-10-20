@@ -1,5 +1,5 @@
 // Fires a burst of concurrent requests at a public, Prisma-backed API route to
-// check that the MySQL connection pool (a default `connection_limit=5` per
+// check that the PostgreSQL connection pool (a default `connection_limit=5` per
 // application process) holds up under concurrency without
 // surfacing pool-exhaustion errors to callers.
 //
@@ -110,8 +110,8 @@ async function main() {
 
   if (poolErrors.length > 0) {
     console.error(
-      `\n❌ FAIL: ${poolErrors.length} request(s) show MySQL/Prisma pool-exhaustion signatures. ` +
-        `Consider lowering CONCURRENCY, raising the database URL's \`connection_limit\`, or checking the MySQL provider's connection limit for this compute size.`
+      `\n❌ FAIL: ${poolErrors.length} request(s) show PostgreSQL/Prisma pool-exhaustion signatures. ` +
+        `Consider lowering CONCURRENCY, raising the database URL's \`connection_limit\`, or checking the PostgreSQL server's connection limit for this compute size.`
     )
     process.exit(1)
   }

@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 enum UserRole {
@@ -426,7 +426,7 @@ model InstructorApplication {
   resumeFileName         String?
   resumeFileType         String?
   resumeFileSize         Int?
-  resumeData             Bytes?                      @db.LongBlob
+  resumeData             Bytes?                      @db.ByteA
 
   user     User  @relation("InstructorApplicationUser", fields: [userId], references: [id])
   reviewer User? @relation("InstructorApplicationReviewer", fields: [reviewerId], references: [id])
@@ -946,7 +946,7 @@ model TutorialCodeExample {
   lessonId       String  @db.Char(36)
   title          String
   language       String
-  sourceCode     String  @db.LongText
+  sourceCode     String  @db.Text
   expectedOutput String? @db.Text
   explanation    String? @db.Text
   order          Int     @default(0)
@@ -961,7 +961,7 @@ model TutorialExercise {
   lessonId       String  @db.Char(36)
   title          String
   instructions   String  @db.Text
-  starterCode    String? @db.LongText
+  starterCode    String? @db.Text
   expectedAnswer String? @db.Text
   explanation    String? @db.Text
   order          Int     @default(0)

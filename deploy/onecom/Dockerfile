@@ -9,7 +9,8 @@ COPY package.json package-lock.json ./
 COPY academy/package.json academy/package.json
 # The Academy workspace has a Prisma postinstall hook, but its schema is copied
 # in the next stage. Generate explicitly there after the full source is present.
-RUN npm ci --ignore-scripts
+RUN npm install --global npm@11.10.1 \
+    && npm ci --ignore-scripts
 
 FROM dependencies AS builder
 WORKDIR /workspace
@@ -17,7 +18,7 @@ COPY . .
 # Next sets NODE_ENV=production while compiling. These non-routable values only
 # satisfy static environment validation; the build never runs migrations or
 # connects to a database. Real values are injected into the runtime container.
-ENV ACADEMY_DATABASE_URL=mysql://build:build@127.0.0.1:3306/build
+ENV ACADEMY_DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build?schema=public&sslmode=disable
 ENV NEXT_PUBLIC_APP_URL=https://academy.duradata.co.za
 RUN npm run db:generate \
     && npm exec --workspace academy -- next build --webpack
@@ -50,4 +51,4 @@ WORKDIR /workspace
 COPY . .
 RUN npm run db:generate
 WORKDIR /workspace/academy
-CMD ["sh", "-lc", "npx prisma migrate deploy && npm run academy:install-free-courses && npm run academy:verify-free-courses"]
+CMD ["npx", "prisma", "migrate", "deploy"]

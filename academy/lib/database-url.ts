@@ -1,21 +1,7 @@
+import type { PoolConfig } from "pg"
 import { isSafeE2ETestMode } from "@/lib/test-database"
 
-export type MySqlConnectionOptions = {
-  host: string
-  port: number
-  user: string
-  password?: string
-  database: string
-  connectionLimit: number
-  connectTimeout: number
-  idleTimeout: number
-  charset: string
-  collation: string
-  ssl?: boolean | { rejectUnauthorized: boolean; ca?: string }
-}
-
-/** Parse the isolated Academy MySQL URL into PrismaMariaDb options. */
-export function mysqlConnectionOptions(): MySqlConnectionOptions {
+function configuredUrl() {
   const raw = process.env.ACADEMY_TEST_DATABASE_URL?.trim() || process.env.ACADEMY_DATABASE_URL?.trim()
   if (!raw) throw new Error("ACADEMY_DATABASE_URL is required")
 
@@ -29,30 +15,43 @@ export function mysqlConnectionOptions(): MySqlConnectionOptions {
         "(e.g. '?' becomes '%3F') before being placed in the connection string."
     )
   }
-  if (url.protocol !== "mysql:") throw new Error("The Academy database URL must use the mysql:// protocol")
+  if (!["postgres:", "postgresql:"].includes(url.protocol)) {
+    throw new Error("The Academy database URL must use the postgresql:// or postgres:// protocol")
+  }
 
   const database = decodeURIComponent(url.pathname.replace(/^\//, ""))
   if (!database) throw new Error("The Academy database URL must include a database name")
+
+  return url
+}
+
+export function postgresSchema() {
+  return configuredUrl().searchParams.get("schema")?.trim() || "public"
+}
+
+/** Parse the isolated Academy PostgreSQL URL into node-postgres pool options. */
+export function postgresConnectionOptions(): PoolConfig {
+  const url = configuredUrl()
 
   const isolatedE2E = isSafeE2ETestMode()
   const sslMode = url.searchParams.get("sslmode")?.toLowerCase()
   const useTls = (process.env.NODE_ENV === "production" && !isolatedE2E) || Boolean(sslMode && sslMode !== "disable")
   const ca = process.env.DATABASE_CA_CERT?.replace(/\\n/g, "\n")
+  const max = Number(url.searchParams.get("connection_limit") || 5)
+  const connectionTimeoutMillis = Number(url.searchParams.get("connect_timeout") || 10) * 1_000
+  const idleTimeoutMillis = Number(url.searchParams.get("idle_timeout") || 10) * 1_000
+
+  // These are pool/adapter options, not PostgreSQL server parameters.
+  url.searchParams.delete("connection_limit")
+  url.searchParams.delete("connect_timeout")
+  url.searchParams.delete("idle_timeout")
+  url.searchParams.delete("schema")
 
   return {
-    host: url.hostname,
-    port: Number(url.port || 3306),
-    user: decodeURIComponent(url.username),
-    password: url.password ? decodeURIComponent(url.password) : undefined,
-    database,
-    connectionLimit: Number(url.searchParams.get("connection_limit") || 5),
-    connectTimeout: Number(url.searchParams.get("connect_timeout") || 10_000),
-    idleTimeout: Number(url.searchParams.get("idle_timeout") || 10),
-    // Keep bound string parameters compatible with the schema's utf8mb4_unicode_ci
-    // columns. The MariaDB driver otherwise negotiates a binary collation on
-    // some MySQL hosts, which makes prepared `LIKE` predicates fail with 1267.
-    charset: "utf8mb4",
-    collation: "utf8mb4_unicode_ci",
-    ...(useTls ? { ssl: ca ? { rejectUnauthorized: true, ca } : true } : {}),
+    connectionString: url.toString(),
+    max,
+    connectionTimeoutMillis,
+    idleTimeoutMillis,
+    ...(useTls ? { ssl: ca ? { rejectUnauthorized: true, ca } : { rejectUnauthorized: true } } : {}),
   }
 }

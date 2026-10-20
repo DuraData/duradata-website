@@ -2,7 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery, parseOptionalBoolean, parseOptionalEnum, parseOptionalUuid } from "@/lib/list-query"
-import { mysqlContainsIds } from "@/lib/mysql-search"
+import { postgresContainsIds } from "@/lib/postgres-search"
 
 export async function GET(req: Request) {
   const auth = await requireAdmin()
@@ -28,9 +28,9 @@ export async function GET(req: Request) {
   if (instructorId) where.instructorId = instructorId
   if (q) {
     const [courseIds, userIds, categoryIds] = await Promise.all([
-      mysqlContainsIds("Course", ["title", "description", "moderationNote"], q),
-      mysqlContainsIds("User", ["name", "email"], q),
-      mysqlContainsIds("Category", ["name"], q),
+      postgresContainsIds("Course", ["title", "description", "moderationNote"], q),
+      postgresContainsIds("User", ["name", "email"], q),
+      postgresContainsIds("Category", ["name"], q),
     ])
     where.OR = [
       { id: { in: courseIds } },

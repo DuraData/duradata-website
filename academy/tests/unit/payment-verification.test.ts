@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 
 async function verifier() {
-  process.env.ACADEMY_DATABASE_URL ||= "mysql://unit:unit@localhost/unit_test?sslmode=disable"
+  process.env.ACADEMY_DATABASE_URL ||= "postgresql://unit:unit@localhost/unit_test?sslmode=disable"
   return import("../../lib/payment-verification")
 }
 

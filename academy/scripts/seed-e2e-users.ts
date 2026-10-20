@@ -6,7 +6,7 @@
 //   depend on those, so it gets its own e2e.*@duradata-academy.test accounts instead.
 //
 // Safe to re-run (upserts). Run against whichever ACADEMY_DATABASE_URL is active —
-// prefer a disposable local or isolated CI MySQL database over production.
+// prefer a disposable local or isolated CI PostgreSQL database over production.
 import "dotenv/config"
 import { hash } from "bcryptjs"
 import { createAcademyPrismaClient } from "../lib/create-prisma-client"

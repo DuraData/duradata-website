@@ -2,7 +2,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { requireInternalInstructor } from "@/lib/rbac"
 import { listQueryErrorResponse, paginationMetadata, parseListQuery } from "@/lib/list-query"
-import { mysqlContainsIds } from "@/lib/mysql-search"
+import { postgresContainsIds } from "@/lib/postgres-search"
 
 const CreateHomeworkSchema = z.object({
   title: z.string().trim().min(1),
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   const where: Record<string, unknown> = { teacherId: auth.user.id }
   if (subjectPackageId) where.subjectPackageId = subjectPackageId
   if (list.search) {
-    const [assignmentIds, subjectIds] = await Promise.all([mysqlContainsIds("HomeworkAssignment", ["title", "description", "subject"], list.search), mysqlContainsIds("SubjectPackage", ["title"], list.search)])
+    const [assignmentIds, subjectIds] = await Promise.all([postgresContainsIds("HomeworkAssignment", ["title", "description", "subject"], list.search), postgresContainsIds("SubjectPackage", ["title"], list.search)])
     where.OR = [{ id: { in: assignmentIds } }, { subjectPackageId: { in: subjectIds } }]
   }
 

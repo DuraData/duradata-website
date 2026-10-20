@@ -96,14 +96,14 @@ delivery) plus a few things worth eyeballing even though they're automated.
 - [ ] Run `npm run db:resilience-check` (optionally against the deployed
       Hostinger URL: `BASE_URL=https://academy.duradata.co.za npm run db:resilience-check`)
       and confirm it reports **PASS** with zero pool-exhaustion signatures.
-- [ ] Watch the MySQL provider monitoring dashboard during a real traffic
+- [ ] Watch the VPS PostgreSQL monitoring during a real traffic
       spike (or while the script above runs) — active connections should stay
       well under the plan's limit, not sawtooth against the ceiling.
 - [ ] Check Hostinger runtime logs during the same window for `P2024` (Prisma
-      pool timeout) or raw MySQL "too many clients" errors.
+      pool timeout) or raw PostgreSQL "too many clients" errors.
 - [ ] Confirm `lib/prisma.ts`'s pool `max` (currently 5 per serverless
       instance) times your expected concurrent function instances stays under
-      the MySQL server's connection ceiling — if you scale Hostinger's max
+      the PostgreSQL server's connection ceiling — if you scale the Academy
       instances up, revisit this number.
 
 ## 5. Cross-cutting / general
@@ -130,7 +130,7 @@ npm run test:e2e:ui             # interactive Playwright UI mode
 npm run test:e2e:report         # open the last HTML report
 ```
 
-Run `seed:e2e` and the suite against a **isolated MySQL test database**,
+Run `seed:e2e` and the suite against an **isolated PostgreSQL test database**,
 not production, if at all possible — it creates real rows (4 users, 1
 category, 1 course) and the course-approval spec creates a fresh throwaway
 course on every run that isn't cleaned up automatically.
