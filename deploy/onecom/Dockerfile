@@ -4,7 +4,9 @@ FROM node:20-bookworm-slim AS dependencies
 WORKDIR /workspace
 COPY package.json package-lock.json ./
 COPY academy/package.json academy/package.json
-RUN npm ci
+# The Academy workspace has a Prisma postinstall hook, but its schema is copied
+# in the next stage. Generate explicitly there after the full source is present.
+RUN npm ci --ignore-scripts
 
 FROM dependencies AS builder
 WORKDIR /workspace
