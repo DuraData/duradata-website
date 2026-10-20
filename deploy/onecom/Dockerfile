@@ -2,6 +2,9 @@
 
 FROM node:20-bookworm-slim AS dependencies
 WORKDIR /workspace
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates openssl \
+    && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 COPY academy/package.json academy/package.json
 # The Academy workspace has a Prisma postinstall hook, but its schema is copied
@@ -25,7 +28,10 @@ ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 WORKDIR /app/academy
 
-RUN groupadd --system --gid 1001 academy \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates openssl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 1001 academy \
     && useradd --system --uid 1001 --gid academy --home-dir /app academy
 
 COPY --from=builder --chown=academy:academy /workspace/academy/.next/standalone/ /app/
