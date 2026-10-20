@@ -58,6 +58,10 @@ npm run db:generate
 npm run db:migrate:deploy
 ```
 
+`npm run build` compiles the application without changing any database. Production
+database migrations and managed course installation are explicit deployment steps;
+the one.com Compose workflow runs them through its isolated `database-setup` job.
+
 For a disposable E2E schema whose database name contains `test`, set `ACADEMY_TEST_DATABASE_URL` and run `npm run test:e2e:safe --workspace academy`. It resets only that unmistakably named test database, applies migrations, seeds E2E fixtures, and runs Playwright.
 
 ## Academy modes

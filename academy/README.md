@@ -38,6 +38,10 @@ npm test
 npm run build
 ```
 
+The build command generates the Prisma client and compiles the standalone runtime,
+but it never migrates or seeds a database. Use `npm run deploy:database` only from
+an authorised production deployment job with the intended PostgreSQL environment.
+
 For E2E tests, use a disposable PostgreSQL database whose name contains `test`, set `ACADEMY_TEST_DATABASE_URL`, install Chromium once with `npx playwright install chromium`, and run:
 
 ```bash
