@@ -19,15 +19,17 @@ Academy now uses Prisma 7 with PostgreSQL and the node-postgres driver adapter. 
 
 The clean PostgreSQL baseline is `academy/prisma/migrations/20261020000000_postgresql_baseline/migration.sql`. It creates the full schema and persists the required feature defaults without inserting demo users or courses.
 
-## PostgreSQL VPS migration — 2026-10-20
+## PostgreSQL VPS migration — corrected 2026-10-21
 
-The live one.com PostgreSQL database was created and verified on 2026-10-20. It runs PostgreSQL **18.6** in the isolated `duradata-academy-db-1` container, uses the persistent `duradata-academy_postgres_data` volume, has restart policy `unless-stopped`, and reports healthy. The database is named `duradata_academy`; the clean baseline migration is applied, with **55 public tables** and the **5 required platform settings**. It publishes no host port and is reachable only from the Academy Compose network. It does not alter or depend on the VPS system PostgreSQL service or any other VPS application.
+The live Academy database now runs on the PostgreSQL **18.6 server already installed on the one.com VPS**, as requested. The dedicated database is `duradata_academy`, owned by the dedicated login `duradata_academy_app`; the clean baseline and migrated data comprise **55 public tables** and the **5 required platform settings**. Academy containers reach the existing server through `duradata-academy-db-proxy-1`, which binds only to the Docker gateway at `172.19.0.1:15433` and forwards to PostgreSQL on VPS localhost. No new public database port was added.
+
+Before the correction, Academy temporarily used `duradata-academy-db-1` and the `duradata-academy_postgres_data` Docker volume. That container and volume remain intact and healthy only as a rollback copy; the live web and database-job services no longer depend on them. A validated pre-cutover custom-format dump is stored under `/home/deploy/apps/duradata-academy/shared/backups/` with mode `0600`.
 
 `academy/scripts/migrate-mysql-to-postgres.ts` transfers every table from the Hostinger Academy MySQL database to PostgreSQL while preserving primary keys and relationships. It includes all corporate courses and Free Learning courses plus their sections, lessons, examples, exercises, quizzes, answers, users, enrolments, progress, certificates, organizations, assignments, and transactions. The transfer uses one consistent repeatable-read MySQL snapshot, is transactional on PostgreSQL, and fails on missing tables, mismatched row counts, or orphaned foreign keys.
 
 The production transfer completed on **2026-10-20** from `u950025577_duraacademy`. A compressed source backup was saved on the VPS before migration at `/home/deploy/apps/duradata-academy/shared/backups/hostinger-mysql-20261020T192139Z.sql.gz`. The final synchronization and independent verification checked **54 application tables** and confirmed that every source row and foreign-key relationship is present in PostgreSQL. The source stored the live Free Learning catalogue in the Tutorial models: **10 tutorials, 215 sections, 215 lessons, 215 code examples, 215 exercises, 215 quizzes, 430 questions, and 1,720 options**. The separate `Course` table contained no source rows, so no corporate-course rows were omitted.
 
-The Academy production release `e075b2bdc3ec` is running on the one.com VPS in the healthy `duradata-academy-web-1` container. Caddy routes only `academy.duradata.co.za` to that container; PostgreSQL remains private to the Academy Compose network. Hostinger continues to host the main `duradata.co.za` website. In Hostinger DNS, the Academy hostname now points to the VPS hostname `vps-5713.onecom-cloud.one`, and `www` is configured as a CNAME to `duradata.co.za` so the main site remains on Hostinger.
+The Academy production release is running on the one.com VPS in the healthy `duradata-academy-web-1` container. Caddy routes only `academy.duradata.co.za` to that container; PostgreSQL remains reachable to Academy through the VPS-local proxy path. Hostinger continues to host the main `duradata.co.za` website. The Academy hostname routes to the VPS, while the apex and `www` main-site hostnames remain assigned to Hostinger.
 
 ## Functional implementation
 
@@ -113,14 +115,16 @@ Live browser verification passed for `https://duradata.co.za`, `https://academy.
 
 Do not apply `npm audit fix --force` without a separate compatibility review. Recheck framework and Prisma/PostgreSQL connector updates regularly, require validated TLS for any non-private PostgreSQL connection, and use the supplied CA option where applicable.
 
-## Current one.com Academy deployment — 2026-10-20
+## Current one.com Academy deployment — 2026-10-21
 
 - Release: `e075b2bdc3ec`
 - Web container: `duradata-academy-web-1` — **healthy**
-- PostgreSQL container: `duradata-academy-db-1` — **healthy**
-- PostgreSQL exposure: private Compose network only; no published database port
+- VPS PostgreSQL: system PostgreSQL **18.6**, database `duradata_academy`, owner `duradata_academy_app`
+- Database proxy: `duradata-academy-db-proxy-1` — **healthy**, Docker gateway `172.19.0.1:15433` to VPS localhost `5432`
+- Rollback PostgreSQL container: `duradata-academy-db-1` — **healthy**, retained but not used by the live web service
+- Final migration verification: **55/55 table content fingerprints matched** before cutover
 - Reverse proxy: Caddy route for `academy.duradata.co.za` only
-- Data migration: **passed**, followed by a separate **54-table** verification
+- Data migration: **passed**, followed by row-count verification and a separate **55-table content-fingerprint** verification
 - Production build: **passed**, generating all **75 pages**
 - TypeScript: **passed**
 - Unit tests: **17/17 passed**
@@ -128,7 +132,7 @@ Do not apply `npm audit fix --force` without a separate compatibility review. Re
 - `www.duradata.co.za`: CNAME to `duradata.co.za` in accordance with Hostinger's web-app guidance
 - `academy.duradata.co.za`: Hostinger ALIAS to `vps-5713.onecom-cloud.one` (`85.190.97.125`)
 
-Hostinger accepted both DNS edits, but its authoritative ALIAS continued to flatten `academy.duradata.co.za` to the previous Hostinger origin after the full cache window. Completing the cutover therefore requires detaching the obsolete Hostinger Academy parked-domain association and replacing its ALIAS with a direct A record to `85.190.97.125`. Caddy is configured to obtain the Academy TLS certificate automatically as soon as public DNS reaches the VPS. The corrected `www` CNAME has propagated, but Hostinger's origin still returns its platform-level HTTP 503 for `www` while the apex returns HTTP 200. No main-site DNS record was pointed to the VPS.
+The Academy hostname is live on the VPS and its public health and learning pages return HTTP 200. No main-site DNS record was pointed to the VPS; the main Duradata website remains on Hostinger.
 
 ## Historical Hostinger Academy deployment
 

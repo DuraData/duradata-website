@@ -31,7 +31,7 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: "3000"
     depends_on:
-      db:
+      db-proxy:
         condition: service_healthy
     expose:
       - "3000"
@@ -64,10 +64,11 @@ services:
     environment:
       NODE_ENV: production
     depends_on:
-      db:
+      db-proxy:
         condition: service_healthy
     networks:
       - private
+      - public_proxy
 
   data-migrate:
     profiles:
@@ -84,12 +85,49 @@ services:
       NODE_ENV: production
     command: ["npm", "run", "db:migrate:mysql-to-postgres"]
     depends_on:
-      db:
+      db-proxy:
         condition: service_healthy
     networks:
       - private
       # Temporary outbound path to the read-only Hostinger MySQL source.
       - public_proxy
+
+  # Bridges containers to the PostgreSQL server already installed on the VPS.
+  # The proxy binds only to the Docker gateway, not to a public host port.
+  db-proxy:
+    build:
+      context: ../..
+      dockerfile: deploy/onecom/Dockerfile
+      target: runtime
+    image: duradata-academy-web:${DURADATA_ACADEMY_RELEASE:-local}
+    command:
+      - node
+      - -e
+      - |
+        const net = require("net");
+        const server = net.createServer((client) => {
+          const upstream = net.connect(5432, "127.0.0.1");
+          client.pipe(upstream);
+          upstream.pipe(client);
+          const close = () => {
+            client.destroy();
+            upstream.destroy();
+          };
+          client.on("error", close);
+          upstream.on("error", close);
+        });
+        server.listen(15433, "172.19.0.1");
+    network_mode: host
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const socket = require('net').connect(15433, '172.19.0.1'); socket.on('connect', () => process.exit(0)); socket.on('error', () => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
 networks:
   private:

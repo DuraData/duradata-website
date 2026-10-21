@@ -8,7 +8,8 @@ This deployment is deliberately isolated from every existing VPS application:
 - No host port is published; only the existing Caddy gateway can reach port 3000
 - `duradata.co.za` and `www.duradata.co.za` remain on Hostinger
 - only `academy.duradata.co.za` is routed to this VPS application
-- Academy uses its own PostgreSQL 18 container and persistent Docker volume
+- Academy uses the PostgreSQL 18 server already installed on the VPS
+- the prior PostgreSQL container and volume are retained only as a rollback copy
 - the Hostinger MySQL database is a read-only migration source during cutover
 
 ## Safety gates
@@ -43,18 +44,20 @@ ACADEMY_URL=https://academy.duradata.co.za
 ACADEMY_HOSTS=academy.duradata.co.za
 ```
 
-The runtime database URL points at the private Compose service, never at the
-Hostinger MySQL database:
+The runtime database URL reaches the existing VPS PostgreSQL server through a
+host-network proxy bound only to the Docker gateway, never the Hostinger MySQL
+database:
 
 ```dotenv
-ACADEMY_DATABASE_URL=postgresql://academy:URL_ENCODED_PASSWORD@db:5432/duradata_academy?schema=public&sslmode=disable
-ACADEMY_DIRECT_DATABASE_URL=postgresql://academy:URL_ENCODED_PASSWORD@db:5432/duradata_academy?schema=public&sslmode=disable
+ACADEMY_DATABASE_URL=postgresql://duradata_academy_app:URL_ENCODED_PASSWORD@172.19.0.1:15433/duradata_academy?schema=public&sslmode=disable
+ACADEMY_DIRECT_DATABASE_URL=postgresql://duradata_academy_app:URL_ENCODED_PASSWORD@172.19.0.1:15433/duradata_academy?schema=public&sslmode=disable
 ```
 
-`postgres.env` supplies `POSTGRES_DB=duradata_academy`, `POSTGRES_USER=academy`,
-and a strong `POSTGRES_PASSWORD`. `migration.env` temporarily supplies the
-read-only source as `MYSQL_SOURCE_DATABASE_URL`; remove that file after the
-verified cutover.
+`postgres.env` is retained only for the rollback container. The existing VPS
+PostgreSQL server has a dedicated `duradata_academy` database and
+`duradata_academy_app` login. `migration.env` temporarily supplies the read-only
+source as `MYSQL_SOURCE_DATABASE_URL`; remove that file after the verified
+cutover.
 
 Do not commit the environment file or paste its secrets into shell history.
 
@@ -65,9 +68,8 @@ From the release checkout:
 ```bash
 export DURADATA_ACADEMY_RELEASE="$(git rev-parse --short=12 HEAD)"
 docker compose -f deploy/onecom/compose.production.yml build web
-docker compose -f deploy/onecom/compose.production.yml up -d db
 docker compose -f deploy/onecom/compose.production.yml --profile setup run --rm database-setup
-docker compose -f deploy/onecom/compose.production.yml up -d web
+docker compose -f deploy/onecom/compose.production.yml up -d db-proxy web
 docker compose -f deploy/onecom/compose.production.yml ps
 ```
 
@@ -93,7 +95,8 @@ existing `public-gateway` project. Reload only after validation succeeds.
 
 ## Rollback
 
-Keep the prior release, image, MySQL backup, and a `pg_dump` made immediately
-after migration. Restore only this Compose project's `web` image or PostgreSQL
-volume. Do not run `docker compose down -v`, operate on another project,
-restart the Docker daemon, or alter the VPS system PostgreSQL service.
+Keep the prior release, image, MySQL backup, pre-cutover Docker PostgreSQL dump,
+and rollback container volume. Restore only this Compose project's `web` image
+or switch its database URL back to the rollback service. Do not run
+`docker compose down -v`, operate on another project, or restart the Docker
+daemon.
