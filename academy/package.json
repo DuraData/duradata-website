@@ -37,7 +37,7 @@
     "@aws-sdk/client-s3": "^3.1114.0",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/adapter-pg": "^7.10.1",
-    "@prisma/client": "^7.10.0",
+    "@prisma/client": "^7.10.1",
     "@radix-ui/react-accordion": "1.2.12",
     "@radix-ui/react-alert-dialog": "1.1.15",
     "@radix-ui/react-aspect-ratio": "1.1.8",
@@ -78,9 +78,9 @@
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
     "lucide-react": "^0.564.0",
-    "next": "16.3.4",
+    "next": "^16.4.2",
     "next-themes": "^0.4.6",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^10.1.7",
     "paynow": "^2.2.2",
     "pg": "^8.23.1",
     "react": "^19",
@@ -104,9 +104,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.3.4",
     "mysql2": "^3.24.6",
     "postcss": "^8.5",
-    "prisma": "^7.10.0"
+    "prisma": "^7.10.1"
   }
 }
